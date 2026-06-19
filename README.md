@@ -1,73 +1,64 @@
-# CoverScope - AI Plant Coverage Measurement
+# CoverScope - Plant Coverage Measurement
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![HTML5](https://img.shields.io/badge/HTML-5-orange.svg)]
-[![CSS3](https://img.shields.io/badge/CSS-3-blue.svg)]
-[![JavaScript](https://img.shields.io/badge/JavaScript-ES6-yellow.svg)]
+Precise, deterministic plant coverage measurement that works entirely on your device.
 
-A web-based application that measures plant coverage in images using AI-powered computer vision techniques. Replicates the functionality of coverscope.whacka.app with a complete HTML web interface.
+**📍 Repository:** https://github.com/diekmann-poiss/coverscope
 
 ## Features
 
-- **Drag & Drop Image Upload** - Easily upload images from your device
-- **Three AI Analysis Modes**: Green Detection, NDVI Simulation, Edge Detection
-- **Real-time Results** with visual feedback and statistics
-- **📊 Comparable Results Section** - Save and compare previous analyses over time
-- **📁 Excel Export** - Download all results as an Excel file (.xlsx)
-- **Responsive Design** - Works on desktop and mobile
-- **No Backend Required** - Runs entirely client-side
+### Analyze Tab
+- **Load Photo** - Upload/drag & drop, auto-downscaled to 640px
+- **Calibrate Scale** - 2-point reference for real-world measurements (m/ft)
+- **Excess-Green Index Analysis** - Standard remote-sensing formula: `(2×Green) − Red − Blue`
+- **Sensitivity Slider** - Aggressive (faint green) to Conservative (strong green)
+- **Target Area** - Resizable box for specific region analysis
+- **1m² Square** - Projective square with instant coverage %
+- **Cubic Volume** - 5-point height input for volume estimation
+- **Manual Correction** - Brush tool with Add/Erase modes
+- **Toggle Overlay** - Verify detection results
 
-## How to Use
+### History Tab
+- View all saved measurements
+- Editable names
+- Coverage %, area, health index
+- Select for comparison
 
-```bash
-# Direct file open
-open index.html  # macOS
-xdg-open index.html  # Linux
+### Compare Tab
+- Bar chart comparison
+- **Excel Export** (.xlsx)
+- **PDF Export**
 
-# Or with local server
-python -m http.server 8000
-# Then open http://localhost:8000
-```
+### Methods Info
+- Comprehensive methodology explanation
+- Formula details
+- Application use cases
 
-## New Features Added
+## How It Works
 
-### 1. Excel File Download
-- Download button generates a professional `.xlsx` file
-- Uses SheetJS library (loaded from CDN)
-- Contains two sheets: "Current Analysis" and "Comparison History"
-- Opens in Excel, Google Sheets, or any spreadsheet application
+**Excess-Green Index:** `ExG = (2 × Green) − Red − Blue`
 
-### 2. Comparable Results Section
-- **Save Results** button stores current analysis
-- **Previous Analyses** section displays historical results as cards
-- Shows coverage percentage, mode, timestamp, and pixel count
-- **Comparison to Current**: Displays difference from current analysis
-- Results persist in localStorage between browser sessions
-- Delete individual results
-- Toggle section visibility
-- Stores up to 10 previous results
+Healthy green vegetation reflects strongly in green while absorbing red and blue light.
 
-## Project Structure
+**Health Index:** `(Average Green Saturation + Average Green Value) / 2`
 
-```
-coverscope-web/
-├── index.html    # Complete web app with all features
-├── README.md     # Documentation
-├── LICENSE       # MIT License
-└── .gitignore    # Git ignore
-```
+**Scale Calibration:** `metresPerPixel = realDistance / pixelDistance`
+
+**Plant Area:** `plantPixels × (metresPerPixel)²`
+
+## Limitations
+
+- Color-based detection, not AI species recognition
+- May under-count very yellow/dry or shadowed vegetation
+- Manual brush provided for edge cases
 
 ## Technical Stack
 
 - HTML5 Canvas for image processing
-- Vanilla JavaScript (no frameworks)
-- CSS3 with CSS variables
-- SheetJS for Excel generation
+- Pure JavaScript (no frameworks)
+- jsPDF for PDF export
+- SheetJS for Excel export
 - localStorage for data persistence
 
-## Repository Status
+## License
 
-The repository is ready at `/tmp/coverscope-web` with:
-- 2 commits
-- Complete implementation of requested features
-- Full documentation
+MIT License
