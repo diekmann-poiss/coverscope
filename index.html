@@ -23,7 +23,7 @@ header{text-align:center;padding:30px 20px;border-bottom:1px solid var(--br);mar
 .tab-content{display:none}
 .tab-content.active{display:block}
 .card{background:var(--bs);border-radius:16px;padding:25px;box-shadow:0 8px 24px rgba(0,0,0,.3);margin-bottom:20px}
-.upload-section{border:2px dashed var(--br);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .3s;background:var(--bt);margin-bottom:20px}
+.upload-section{border:2px dashed var(--br);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .3s;background:var(--bt);margin-bottom:20px;position:relative;z-index:2}
 .upload-section:hover{border-color:var(--a);background:rgba(76,175,80,.1)}
 .upload-section.drag-over{border-color:var(--a);background:rgba(76,175,80,.2)}
 .upload-icon{font-size:2.5rem;color:var(--a);margin-bottom:15px}
@@ -33,9 +33,10 @@ header{text-align:center;padding:30px 20px;border-bottom:1px solid var(--br);mar
 .img-ctr{position:relative;margin:20px 0;overflow:hidden;border-radius:12px;background:var(--bt);cursor:crosshair;display:none}
 .img-wrap{position:relative;overflow:hidden}
 #imageCanvas{display:block;max-width:100%;background:#111}
-#overlayCanvas,#drawingCanvas{position:absolute;top:0;left:0;pointer-events:none}
-#drawingCanvas{pointer-events:auto}
-#squareTool{position:absolute;border:2px dashed var(--a);background:rgba(76,175,80,.1);pointer-events:none;display:none}
+#overlayCanvas{position:absolute;top:0;left:0;pointer-events:none}
+#drawingCanvas{position:absolute;top:0;left:0;pointer-events:none}
+#drawingCanvas.brush-active{pointer-events:auto}
+#squareTool{position:absolute;border:2px dashed var(--a);background:rgba(76,175,80,.1);pointer-events:none;display:none;z-index:5}
 #squareTool.active{display:block}
 .square-handle{position:absolute;width:12px;height:12px;background:var(--a);border-radius:50%;pointer-events:auto;cursor:move}
 .zoom-ctrls{position:absolute;bottom:15px;right:15px;display:flex;gap:10px;background:rgba(0,0,0,.7);padding:8px 12px;border-radius:8px;z-index:10}
@@ -90,16 +91,11 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .vol-sec.active{display:block}
 .vol-res{margin-top:15px;padding:15px;background:var(--bt);border-radius:8px;display:none}
 .vol-res.active{display:block}
- history-tab .card,.compare-tab .card{padding:15px}
 .history-list{display:grid;gap:15px}
 .history-card{background:var(--bt);border-radius:12px;padding:20px;border:1px solid var(--br);transition:all .3s}
 .history-card:hover{border-color:var(--a)}
 .history-card-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:15px}
 .history-card-title{font-size:1.1rem;font-weight:600}
-.history-card-actions{display:flex;gap:8px}
-.rename-btn,.select-btn{padding:6px 12px;background:var(--bs);border:1px solid var(--br);border-radius:6px;color:var(--ts);cursor:pointer;font-size:.8rem}
-.rename-btn:hover,.select-btn:hover{color:var(--t)}
-.select-btn.active{background:var(--a);border-color:var(--a);color:#fff}
 .history-card-date{font-size:.75rem;color:var(--ts);margin-bottom:10px}
 .history-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
 .history-stat{display:flex;flex-direction:column}
@@ -161,7 +157,7 @@ footer{text-align:center;padding:30px 20px;color:var(--ts);font-size:.9rem}
 <div class="card">
 <div class="upload-section" id="uploadSection">
 <div class="upload-icon">📁</div>
-<div class="upload-text"><h3>Upload a Photo</h3><p>Drag and drop or click</p></div>
+<div class="upload-text"><h3>Upload a Photo</h3><p>Drag and drop or click to select</p></div>
 <input type="file" id="fileInput" class="file-input" accept="image/*">
 </div>
 
@@ -182,17 +178,17 @@ footer{text-align:center;padding:30px 20px;color:var(--ts);font-size:.9rem}
 </div>
 
 <div class="cal-sec" id="calSec" style="display:none">
-<div class="cal-hdr"><h3>📏 Calibrate Scale</h3><span class="status-badge status-cal" id="calStatus" style="display:none"></span></div>
-<p class="cal-info">Tap two points of known length, then enter distance. Used for real area calculations.</p>
+<div class="cal-hdr"><h3>📏 Calibrate Scale (optional)</h3><span class="status-badge status-cal" id="calStatus" style="display:none"></span></div>
+<p class="cal-info">Tap two points of known length, then enter distance. Required for real-world area calculations. Skip to analyze pixel coverage only.</p>
 <div class="cal-ctrls">
 <div class="cal-inpgrp">
 <input type="number" id="calDist" class="cal-inp" placeholder="Enter distance" step="0.01" min="0.01">
 <select id="calUnit" class="unit-sel"><option value="m">m</option><option value="ft">ft</option></select>
 </div>
-<button class="btn btn-p" id="startCalBtn" onclick="startCal()">Start</button>
+<button class="btn btn-p" id="startCalBtn" onclick="startCal()">Start Calibration</button>
 <button class="btn btn-s" id="clearCalBtn" onclick="clearCal()" style="display:none">Clear</button>
 </div>
-<div id="calPointsInfo" style="display:none;margin-top:10px;font-size:.85rem;color:var(--ts)">Points: <span id="pointsCount">0/2</span></div>
+<div id="calPointsInfo" style="display:none;margin-top:10px;font-size:.85rem;color:var(--ts)">Points placed: <span id="pointsCount">0/2</span></div>
 </div>
 
 <div class="ana-sec" id="anaSec" style="display:none">
@@ -201,24 +197,26 @@ footer{text-align:center;padding:30px 20px;color:var(--ts);font-size:.9rem}
 <div class="slider-lbl"><span>Sensitivity</span><span id="sensVal">Moderate</span></div>
 <input type="range" id="sensSlider" min="0" max="100" value="50" oninput="updateSens()">
 </div>
-<p style="font-size:.8rem;color:var(--ts);margin-bottom:15px">Aggressive=catches faint green | Conservative=only strong green</p>
+<p style="font-size:.8rem;color:var(--ts);margin-bottom:15px">Aggressive = catches faint green &nbsp;|&nbsp; Conservative = only strong green</p>
 <div class="tool-sel">
 <button class="tool-btn" id="targetBtn" onclick="toggleTarget()">🎯 Target Area</button>
 <button class="tool-btn" id="squareBtn" onclick="toggleSquare()">📐 1m² Square</button>
 <button class="tool-btn" id="volumeBtn" onclick="toggleVolume()">📦 Volume</button>
-<button class="tool-btn active" id="brushBtn" onclick="setBrush('off')">✏️ Brush: Off</button>
+<button class="tool-btn" id="brushBtn" onclick="cycleBrush()">✏️ Brush: Off</button>
 </div>
 <div class="brush-ctrls" id="brushCtrls">
 <div class="brush-mode">
-<button class="brush-btn" id="addBtn" onclick="setBrush('add')">Add</button>
-<button class="brush-btn active" id="eraseBtn" onclick="setBrush('erase')">Erase</button>
+<button class="brush-btn active" id="addBtn" onclick="setBrushMode('add')">Add</button>
+<button class="brush-btn" id="eraseBtn" onclick="setBrushMode('erase')">Erase</button>
 </div>
 <div class="brush-size">
-<span>Size:</span><input type="range" id="brushSize" min="1" max="50" value="10" oninput="updateBrush()"><span id="brushSizeVal">10</span>
+<span style="font-size:.85rem;color:var(--ts)">Size:</span>
+<input type="range" id="brushSize" min="1" max="50" value="10" oninput="updateBrush()">
+<span id="brushSizeVal">10px</span>
 </div>
 </div>
 <div class="btn-grp">
-<button class="btn btn-p" id="analyzeBtn" onclick="analyze()" disabled>🔍 Analyze</button>
+<button class="btn btn-p" id="analyzeBtn" onclick="analyze()">🔍 Analyze</button>
 <button class="btn btn-s" id="toggleBtn" onclick="toggleOverlay()" disabled>👁️ Toggle Overlay</button>
 <button class="btn btn-p" id="saveBtn" onclick="saveMeasure()" disabled>💾 Save</button>
 </div>
@@ -228,12 +226,13 @@ footer{text-align:center;padding:30px 20px;color:var(--ts);font-size:.9rem}
 <h3>📊 Results</h3>
 <div class="results-grid">
 <div class="result-card"><div class="result-lbl">Coverage</div><div class="result-value" id="covPct">0%</div></div>
-<div class="result-card"><div class="result-lbl">Plant Area</div><div class="result-value" id="plantArea">0 m²</div></div>
-<div class="result-card"><div class="result-lbl">Total Area</div><div class="result-value" id="totalArea">0 m²</div></div>
+<div class="result-card"><div class="result-lbl">Plant Area</div><div class="result-value" id="plantArea">–</div></div>
+<div class="result-card"><div class="result-lbl">Total Area</div><div class="result-value" id="totalArea">–</div></div>
 <div class="result-card"><div class="result-lbl">Health</div><div class="result-value" id="healthIdx">0%</div></div>
 </div>
 <div class="vol-sec" id="volSec">
-<h4>Cubic Volume</h4>
+<h4 style="margin-bottom:10px">Cubic Volume</h4>
+<p style="font-size:.8rem;color:var(--ts);margin-bottom:10px">Enter plant heights (m) at each corner and center of the 1m² square:</p>
 <div class="btn-grp">
 <input type="number" id="hNW" class="cal-inp" placeholder="NW" step="0.01" min="0" oninput="volChanged()">
 <input type="number" id="hNE" class="cal-inp" placeholder="NE" step="0.01" min="0" oninput="volChanged()">
@@ -241,7 +240,7 @@ footer{text-align:center;padding:30px 20px;color:var(--ts);font-size:.9rem}
 <input type="number" id="hSW" class="cal-inp" placeholder="SW" step="0.01" min="0" oninput="volChanged()">
 <input type="number" id="hC" class="cal-inp" placeholder="Center" step="0.01" min="0" oninput="volChanged()">
 </div>
-<button class="btn btn-s" onclick="calcVol()" style="margin-top:10px">Calculate</button>
+<button class="btn btn-s" onclick="calcVol()" style="margin-top:10px">Calculate Volume</button>
 <div class="vol-res" id="volRes">
 <div class="result-card" style="margin:0"><div class="result-lbl">Volume</div><div class="result-value" id="volVal">0 m³</div></div>
 </div>
@@ -258,17 +257,17 @@ footer{text-align:center;padding:30px 20px;color:var(--ts);font-size:.9rem}
 
 <div id="compare-tab" class="tab-content">
 <div class="card">
-<p style="color:var(--ts);margin-bottom:20px">Select measurements from History to compare (min 2)</p>
+<p style="color:var(--ts);margin-bottom:20px">Select measurements from History to compare (minimum 2)</p>
 <div class="compare-ctrls" id="compareCtrls" style="display:none">
-<button class="compare-btn" onclick="doCompare()">Compare</button>
-<button class="compare-btn" onclick="clearSel()">Clear</button>
+<button class="compare-btn" onclick="doCompare()">Compare Selected</button>
+<button class="compare-btn" onclick="clearSelection()">Clear Selection</button>
 </div>
 <div class="compare-chart" id="compareChart">
-<h3>Comparison</h3>
+<h3 style="margin-bottom:15px">Comparison</h3>
 <div class="compare-bars" id="compareBars"></div>
 <div class="btn-grp" style="margin-top:20px">
-<button class="btn btn-s" onclick="exportExcel()">📊 Excel</button>
-<button class="btn btn-s" onclick="exportPDF()">📄 PDF</button>
+<button class="btn btn-s" onclick="exportExcel()">📊 Export Excel</button>
+<button class="btn btn-s" onclick="exportPDF()">📄 Export PDF</button>
 </div>
 </div>
 </div>
@@ -279,104 +278,833 @@ footer{text-align:center;padding:30px 20px;color:var(--ts);font-size:.9rem}
 <div class="modal-overlay" id="modal"><div class="modal"><button class="modal-close" onclick="closeModal()">×</button>
 <h2>📚 Methodology</h2>
 <h3>Overview</h3>
-<p>CoverScope measures living green vegetation coverage from a photo, entirely on device. Deterministic and reproducible - no internet or AI guessing required.</p>
+<p>CoverScope measures living green vegetation coverage from a photo, entirely on device. Deterministic and reproducible — no internet or AI guessing required.</p>
 <h3>Core Method: Excess-Green Index</h3>
 <p>The primary detection uses the <strong>Excess-Green Index (ExG)</strong>, a standard remote-sensing formula:</p>
-<span class="formula">ExG = (2 &times; Green) &minus; Red &minus; Blue</span>
-<p>This works because healthy green vegetation reflects strongly in green while absorbing red and blue light. High ExG = green plants; low/negative ExG = soil, walls, sky, non-vegetation.</p>
+<span class="formula">ExG = (2 × Green) − Red − Blue</span>
+<p>This works because healthy green vegetation reflects strongly in green while absorbing red and blue light. High ExG = green plants; low/negative ExG = soil, walls, sky.</p>
 <h3>Green-Dominance Check</h3>
 <p>In addition to ExG, we verify: <strong>Green &gt; Red AND Green &gt; Blue</strong></p>
-<p>This prevents false positives from bright red/blue objects that might have high ExG values.</p>
 <h3>Sensitivity</h3>
-<p><strong>Aggressive</strong> (left): Lower threshold - catches faint green, more inclusive<br><strong>Conservative</strong> (right): Higher threshold - only strong green, more exclusive</p>
+<p><strong>Aggressive</strong>: Lower threshold — catches faint green, more inclusive<br><strong>Conservative</strong>: Higher threshold — only strong green, more exclusive</p>
 <h3>Scale Calibration</h3>
-<ol>
-<li>Select two points of known real-world distance</li>
-<li>Enter the actual distance between them</li>
-<li>App calculates: <strong>metresPerPixel = realDistance / pixelDistance</strong></li>
-<li>Plant area (m²) = plantPixels &times; (metresPerPixel)²</li>
+<ol style="padding-left:20px;color:var(--ts)">
+<li style="margin-bottom:8px">Select two points of known real-world distance</li>
+<li style="margin-bottom:8px">Enter the actual distance between them</li>
+<li style="margin-bottom:8px">App calculates: <strong>metresPerPixel = realDistance / pixelDistance</strong></li>
+<li style="margin-bottom:8px">Plant area (m²) = plantPixels × (metresPerPixel)²</li>
 </ol>
 <h3>Health Index</h3>
 <p><strong>Health = (Average Green Saturation + Average Green Value) / 2</strong></p>
-<p>Higher values = more vibrant, healthy vegetation. Best for comparing the same area over time.</p>
 <h3>Manual Correction</h3>
-<ul><li><strong>Add Mode:</strong> Paint missed plants</li><li><strong>Erase Mode:</strong> Remove false positives</li><li>Corrections update calculations in real-time</li></ul>
+<ul><li><strong>Add Mode:</strong> Paint missed plants</li><li><strong>Erase Mode:</strong> Remove false positives</li></ul>
 <h3>Target Area</h3>
-<p>Focus analysis on a specific region (rooftop, garden bed, wall) rather than the entire image.</p>
+<p>Focus analysis on a specific region rather than the entire image.</p>
 <h3>1m² Square</h3>
-<p>Drag the 1m² reference square anywhere on your calibrated image for instant coverage % of that exact patch.</p>
+<p>Drag the 1m² reference square anywhere on your calibrated image for instant coverage % of that patch.</p>
 <h3>Cubic Volume</h3>
-<ol><li>Place 1m² square on target area</li><li>Enter plant heights at 4 corners + center</li><li>Volume (m³) = Average Height &times; Coverage % &times; 1m²</li></ol>
-<h3>Applications</h3>
-<ul><li>Green roof vegetation monitoring</li><li>Garden bed coverage tracking</li><li>Wall vegetation measurement</li><li>Research & reporting</li></ul>
+<ol style="padding-left:20px;color:var(--ts)">
+<li style="margin-bottom:8px">Place 1m² square on target area</li>
+<li style="margin-bottom:8px">Enter plant heights at 4 corners + center</li>
+<li style="margin-bottom:8px">Volume (m³) = Average Height × Coverage % × 1m²</li>
+</ol>
 </div></div>
 
 <script>
-const S={original:null,working:null,imgScale:1,offset:{x:0,y:0},cal:{on:false,points:[],dist:null,unit:'m',mpp:null},ana:{on:false,sens:50,pixels:0,total:0,cov:0,area:0,tarea:0,health:0},target:{on:false,x:0,y:0,w:0,h:0},square:{on:false,x:0,y:0,w:0,h:0},volume:{on:false},brush:{on:'off',size:10},overlay:true,zoom:1,maxZ:4,minZ:.25,measures:[],sel:[],drawing:false,lastP:null,pan:{on:false,start:{x:0,y:0}},brushData:null};
-const U=document.getElementById('uploadSection'),FI=document.getElementById('fileInput'),IC=document.getElementById('imgCtr'),IW=document.getElementById('imgWrap'),IMC=document.getElementById('imageCanvas'),OC=document.getElementById('overlayCanvas'),DC=document.getElementById('drawingCanvas'),CALSEC=document.getElementById('calSec'),ANASEC=document.getElementById('anaSec'),RS=document.getElementById('resultsSec'),ST=document.getElementById('squareTool'),CSB=document.getElementById('calStatus'),CDI=document.getElementById('calDist'),CUN=document.getElementById('calUnit'),SCB=document.getElementById('startCalBtn'),CCB=document.getElementById('clearCalBtn'),PCI=document.getElementById('calPointsInfo'),PCS=document.getElementById('pointsCount'),SS=document.getElementById('sensSlider'),SV=document.getElementById('sensVal'),TBTN=document.getElementById('targetBtn'),SBTN=document.getElementById('squareBtn'),VBTN=document.getElementById('volumeBtn'),BBTN=document.getElementById('brushBtn'),BC=document.getElementById('brushCtrls'),ABTN=document.getElementById('addBtn'),EBTN=document.getElementById('eraseBtn'),BS=document.getElementById('brushSize'),BSV=document.getElementById('brushSizeVal'),ANB=document.getElementById('analyzeBtn'),TOB=document.getElementById('toggleBtn'),SAVB=document.getElementById('saveBtn'),CP=document.getElementById('covPct'),PA=document.getElementById('plantArea'),TA=document.getElementById('totalArea'),HI=document.getElementById('healthIdx'),VS=document.getElementById('volSec'),VR=document.getElementById('volRes'),VV=document.getElementById('volVal'),HL=document.getElementById('historyList'),CC=document.getElementById('compareCtrls'),CH=document.getElementById('compareChart'),CB=document.getElementById('compareBars'),EM=document.getElementById('errorMsg'),LO=document.getElementById('loading'),MODAL=document.getElementById('modal');
+// ─── State ───────────────────────────────────────────────────────────────────
+const S = {
+  original: null, working: null,
+  offset: {x:0,y:0}, zoom: 1, maxZ: 4, minZ: .25,
+  cal: {on:false, points:[], dist:null, unit:'m', mpp:null},
+  ana: {on:false, sens:50, pixels:0, total:0, cov:0, area:0, tarea:0, health:0},
+  target: {on:false, x:0, y:0, w:0, h:0, drag:false},
+  square: {on:false, x:0, y:0, w:100, h:100, drag:false},
+  volume: {on:false},
+  brush: {on:'off', mode:'add', size:10},
+  overlay: true,
+  measures: [], sel: [],
+  drawing: false, lastP: null,
+  pan: {on:false, start:{x:0,y:0}},
+  brushData: null,
+  dragStart: null, dragOff: null
+};
 
-function init(){setupFileUpload();loadMeasurements();setupTabs();console.log('CoverScope init')}
-function switchTab(tabName){document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById(tabName+'-tab').classList.add('active');const btn=document.querySelector('[data-tab="'+tabName+'"]');if(btn)btn.classList.add('active')}
-function setupTabs(){document.querySelectorAll('.tab-btn').forEach(btn=>{btn.addEventListener('click',(e)=>{if(btn.dataset.tab)switchTab(btn.dataset.tab)})})}
-function setupFileUpload(){FI.addEventListener('change',handleUpload);U.addEventListener('dragover',handleDragOver);U.addEventListener('dragleave',handleDragLeave);U.addEventListener('drop',handleDrop);U.addEventListener('click',()=>FI.click())}
-function handleDragOver(e){e.preventDefault();e.stopPropagation();U.classList.add('drag-over')}
-function handleDragLeave(e){e.preventDefault();e.stopPropagation();U.classList.remove('drag-over')}
-function handleDrop(e){e.preventDefault();e.stopPropagation();U.classList.remove('drag-over');const f=e.dataTransfer.files;if(f&&f[0]&&f[0].type.startsWith('image/'))processImage(f[0])}
-function handleUpload(e){const f=e.target.files[0];if(f&&f.type.startsWith('image/'))processImage(f);else showError('Invalid image')}
-function processImage(f){clearAll();EM.classList.remove('active');const R=new FileReader();R.onload=function(e){const I=new Image();I.onload=()=>{S.original=I;downscaleImage();U.style.display='none';IC.style.display='block';CALSEC.style.display='block';showSuccess('Image loaded. Calibrate next.')};I.onerror=()=>showError('Load error');I.src=e.target.result};R.readAsDataURL(f)}
-function downscaleImage(){const I=S.original,M=640,R=Math.min(M/I.width,M/I.height),W=Math.round(I.width*R),H=Math.round(I.height*R);const C=document.createElement('canvas');C.width=W;C.height=H;const X=C.getContext('2d');X.drawImage(I,0,0,W,H);S.working=new Image();S.working.src=C.toDataURL();S.working.onload=renderImage}
-function renderImage(){if(!S.working)return;const I=S.working,C=IMC,X=C.getContext('2d'),DW=I.width*S.zoom,DH=I.height*S.zoom;C.width=DW;C.height=DH;X.clearRect(0,0,C.width,C.height);X.save();X.scale(S.zoom,S.zoom);X.drawImage(I,S.offset.x/S.zoom,S.offset.y/S.zoom);X.restore();renderOverlay();renderDrawing()}
-function renderOverlay(){if(!S.working||!S.ana.on)return;const I=S.working,C=OC,X=C.getContext('2d'),DW=I.width*S.zoom,DH=I.height*S.zoom;C.width=DW;C.height=DH;if(!S.overlay){X.clearRect(0,0,C.width,C.height);return}X.clearRect(0,0,C.width,C.height);X.save();X.scale(S.zoom,S.zoom);const T=document.createElement('canvas');T.width=I.width;T.height=I.height;const TX=T.getContext('2d');TX.drawImage(I,0,0);const ID=TX.getImageData(0,0,I.width,I.height);const AD=analyzeImageData(ID);for(let y=0;y<AD.height;y++)for(let x=0;x<AD.width;x++){const i=(y*AD.width+x)*4,o=AD.data;const R=o[i],G=o[i+1],B=o[i+2];if(G>0){X.fillStyle=`rgba(76,175,80,${G/255*.5})`;X.fillRect(x,y,1,1)}else{X.fillStyle=`rgba(${R},${R},${R},.3)`;X.fillRect(x,y,1,1)}}}X.restore()}
-function analyzeImageData(ID){if(!S.working)return null;const I=S.working,W=I.width,H=I.height;let R={x:0,y:0,width:W,height:H};if(S.target.on&&S.target)R=S.target;else if(S.square.on&&S.square)R=S.square;const C=document.createElement('canvas');C.width=R.width;C.height=R.height;const X=C.getContext('2d');X.drawImage(I,R.x,R.y,R.width,R.height,0,0,R.width,R.height);const D=X.getImageData(0,0,R.width,R.height);const o=D.data,T=getThreshold();for(let i=0;i<o.length;i+=4){const R=o[i],G=o[i+1],B=o[i+2],E=(2*G-R-B)/255,GD=G>R&&G>B;if(E>T&&GD){o[i]=0;o[i+1]=255;o[i+2]=0;o[i+3]=255}else{const Gr=.299*R+.587*G+.114*B;o[i]=o[i+1]=o[i+2]=Gr;o[i+3]=255}}return D}
-function getThreshold(){return.05+(.2-.05)*(100-S.ana.sens)/100}
-function updateSens(){S.ana.sens=parseInt(SS.value);SV.textContent=['Aggressive','Moderate','Conservative'][Math.floor(S.ana.sens/50)];if(S.ana.on)analyze()}
-function renderDrawing(){const C=DC,X=C.getContext('2d'),DW=S.working?S.working.width*S.zoom:0,DH=S.working?S.working.height*S.zoom:0;C.width=DW;C.height=DH;X.clearRect(0,0,C.width,C.height);if(!S.brush.on)return;X.save();X.scale(S.zoom,S.zoom);if(S.brushData){X.fillStyle='#4caf50';(S.brushData.add||[]).forEach(r=>X.fillRect(r.x,r.y,r.w,r.h));X.fillStyle='#1a1e1f';(S.brushData.erase||[]).forEach(r=>X.fillRect(r.x,r.y,r.w,r.h))}X.restore()}
-function renderSquareTool(){if(!S.square.on||!S.working||!S.cal.mpp)return;ST.style.display='none';return;ST.style.display='block';ST.style.left=`${S.square.x*S.zoom+S.offset.x}px`;ST.style.top=`${S.square.y*S.zoom+S.offset.y}px`;ST.style.width=`${S.square.w*S.zoom}px`;ST.style.height=`${S.square.h*S.zoom}px`}
-function handleMouseDown(e){e.preventDefault();if(S.cal.on){const R=IMC.getBoundingClientRect(),X=Math.round((e.clientX-R.left)/S.zoom),Y=Math.round((e.clientY-R.top)/S.zoom);if(X>=0&&X<S.working.width&&Y>=0&&Y<S.working.height){S.cal.points.push({x:X,y:Y});PCS.textContent=`${S.cal.points.length}/2`;if(S.cal.points.length==2)completeCalibration()}}else if(S.brush.on=='add'||S.brush.on=='erase'){const R=IMC.getBoundingClientRect(),X=Math.round((e.clientX-R.left)/S.zoom),Y=Math.round((e.clientY-R.top)/S.zoom);if(!S.brushData)S.brushData={add:[],erase:[]};S.drawing=true;S.lastP={x:X,y:Y}}else if(S.target.on){const R=IMC.getBoundingClientRect(),X=(e.clientX-R.left)/S.zoom,Y=(e.clientY-R.top)/S.zoom;if(!S.target)S.target={x:X,y:Y,w:0,h:0};S.target.drag=true;S.dragStart={x:X,y:Y}}else if(S.square.on){const R=IMC.getBoundingClientRect(),X=(e.clientX-R.left)/S.zoom,Y=(e.clientY-R.top)/S.zoom;S.square.drag=true;S.dragStart={x:X,y:Y};S.dragOff={x:X-S.square.x,y:Y-S.square.y}}else{S.pan.on=true;S.pan.start={x:e.clientX,y:e.clientY}}}
-function handleMouseMove(e){e.preventDefault();if(S.pan.on){S.offset.x+=e.clientX-S.pan.start.x;S.offset.y+=e.clientY-S.pan.start.y;S.pan.start={x:e.clientX,y:e.clientY};renderImage()}else if(S.drawing){const R=IMC.getBoundingClientRect(),X=Math.round((e.clientX-R.left)/S.zoom),Y=Math.round((e.clientY-R.top)/S.zoom);const X1=S.lastP.x,Y1=S.lastP.y,minX=Math.min(X1,X),minY=Math.min(Y1,Y),maxX=Math.max(X1,X),maxY=Math.max(Y1,Y);const C=DC.getContext('2d');C.save();C.scale(S.zoom,S.zoom);C.lineWidth=S.brush.size;C.strokeStyle=S.brush.on=='add'?'#4caf50':'#1a1e1f';C.lineCap='round';C.beginPath();C.moveTo(S.lastP.x,S.lastP.y);C.lineTo(X,Y);C.stroke();C.restore();if(S.brush.on=='add')S.brushData.add.push({x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1});else S.brushData.erase.push({x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1});S.lastP={x:X,y:Y}}else if(S.target.drag&&S.target){const R=IMC.getBoundingClientRect(),X=Math.max(0,Math.min(S.working.width-1,Math.round((e.clientX-R.left)/S.zoom))),Y=Math.max(0,Math.min(S.working.height-1,Math.round((e.clientY-R.top)/S.zoom)));const W=Math.abs(X-S.dragStart.x),H=Math.abs(Y-S.dragStart.y),L=Math.min(S.dragStart.x,X),T=Math.min(S.dragStart.y,Y);S.target={x:L,y:T,w:W,h:H};renderOverlay()}else if(S.square.drag&&S.square){const R=IMC.getBoundingClientRect(),X=Math.max(0,Math.min(S.working.width-S.square.w,Math.round((e.clientX-R.left)/S.zoom))),Y=Math.max(0,Math.min(S.working.height-S.square.h,Math.round((e.clientY-R.top)/S.zoom)));S.square.x=X;S.square.y=Y;renderSquareTool()}}
-function handleMouseUp(e){e.preventDefault();S.pan.on=false;S.drawing=false;S.target.drag=false;S.square.drag=false;if(S.ana.on&&(S.drawing||S.target.drag||S.square.drag))analyze()}
-function handleWheel(e){e.preventDefault();const D=e.deltaY>0?-.1:.1,N=Math.max(S.minZ,Math.min(S.maxZ,S.zoom+D));if(N!==S.zoom){const R=IMC.getBoundingClientRect(),MX=(e.clientX-R.left)/S.zoom,MY=(e.clientY-R.top)/S.zoom;S.offset.x-=MX*(N-S.zoom);S.offset.y-=MY*(N-S.zoom);S.zoom=N;renderImage()}}
-function handleTouchStart(e){e.preventDefault();const t=e.touches[0];handleMouseDown({clientX:t.clientX,clientY:t.clientY,preventDefault:()=>{}})}
-function handleTouchMove(e){e.preventDefault();const t=e.touches[0];handleMouseMove({clientX:t.clientX,clientY:t.clientY,preventDefault:()=>{}})}
-function handleTouchEnd(e){e.preventDefault();handleMouseUp({preventDefault:()=>{}})}
-function handleKeyDown(e){if(e.code=='Space'&&S.ana.on){e.preventDefault();toggleOverlay()}if(e.code=='Delete'||e.code=='Backspace')clearAll()}
-function startCal(){S.cal.on=true;S.cal.points=[];PCS.textContent='0/2';PCI.style.display='block';SCB.style.display='none';CCB.style.display='inline-block';showSuccess('Tap 2 points of known distance')}
-function completeCalibration(){if(S.cal.points.length<2){showError('Need 2 points');return}const D=parseFloat(CDI.value);if(isNaN(D)||D<=0){showError('Enter valid distance');return}const P1=S.cal.points[0],P2=S.cal.points[1],PD=Math.sqrt(Math.pow(P2.x-P1.x,2)+Math.pow(P2.y-P1.y,2));S.cal.dist=D;S.cal.unit=CUN.value;const DI=S.cal.unit=='m'?D:D*.3048;S.cal.mpp=DI/PD;S.cal.on=false;CSB.textContent=`Calibrated: ${D} ${S.cal.unit}`;CSB.style.display='inline-block';PCI.style.display='none';SCB.style.display='inline-block';CCB.style.display='inline-block';ANB.disabled=false;showSuccess('Scale calibrated! Now analyze.')}
-function clearCal(){S.cal.on=false;S.cal.points=[];S.cal.dist=null;S.cal.mpp=null;PCS.textContent='0/2';PCI.style.display='none';SCB.style.display='inline-block';CCB.style.display='none';CSB.style.display='none';CDI.value='';ANB.disabled=true;PA.textContent='0 m²';TA.textContent='0 m²';renderOverlay()}
-function toggleTarget(){S.target.on=!S.target.on;S.square.on=false;S.volume.on=false;TBTN.classList.toggle('active',S.target.on);SBTN.classList.remove('active');VBTN.classList.remove('active');if(S.target.on){if(!S.target)S.target={x:50,y:50,w:200,h:200};showSuccess('Drag to resize target')}else S.target=null;if(S.ana.on)analyze()}
-function toggleSquare(){if(!S.cal.mpp){showError('Calibrate first');S.square.on=false;SBTN.classList.remove('active');return}S.square.on=!S.square.on;S.target.on=false;S.volume.on=false;SBTN.classList.toggle('active',S.square.on);TBTN.classList.remove('active');VBTN.classList.remove('active');if(S.square.on){if(!S.square){const PP=1/S.cal.mpp,SZ=PP;S.square={x:(S.working.width-SZ)/2,y:(S.working.height-SZ)/2,w:SZ,h:SZ}}VS.style.display='block';renderSquareTool();showSuccess('Drag to position square')}else{S.square=null;VS.style.display='none';VR.style.display='none';renderSquareTool()};if(S.ana.on)analyze()}
-function toggleVolume(){S.volume.on=!S.volume.on;VBTN.classList.toggle('active',S.volume.on);if(S.volume.on&&!S.square.on)toggleSquare()}
-function setBrush(m){S.brush.on=m;ABTN.classList.remove('active');EBTN.classList.remove('active');if(m=='add'){ABTN.classList.add('active');BBTN.textContent='✏️ Brush: Add'}else if(m=='erase'){EBTN.classList.add('active');BBTN.textContent='✏️ Brush: Erase'}else{BBTN.textContent='✏️ Brush: Off'}BC.classList.toggle('active',m!='off')}
-function updateBrush(){S.brush.size=parseInt(BS.value);BSV.textContent=S.brush.size+'px'}
-function toggleOverlay(){S.overlay=!S.overlay;TOB.textContent=S.overlay?'👁️ Toggle Overlay':'👁️‍🗨 Show Overlay';renderOverlay()}
-function analyze(){if(!S.working){showError('Upload image first');return}if(!S.cal.mpp&&S.target.on==false){showError('Calibrate for area');return}showLoading();setTimeout(()=>{try{performAnalysis();hideLoading();}catch(e){hideLoading();showError('Analysis failed: '+e.message)}},100)}
-function performAnalysis(){const I=S.working,W=I.width,H=I.height;let R={x:0,y:0,width:W,height:H};if(S.target.on&&S.target)R=S.target;else if(S.square.on&&S.square)R=S.square;const C=document.createElement('canvas');C.width=R.width;C.height=R.height;const X=C.getContext('2d');X.drawImage(I,R.x,R.y,R.width,R.height,0,0,R.width,R.height);const ID=X.getImageData(0,0,R.width,R.height);const o=ID.data,T=getThreshold(),TC=R.width*R.height;let PC=0,TS=0,TV=0;for(let i=0;i<o.length;i+=4){const R=o[i],G=o[i+1],B=o[i+2],E=(2*G-R-B)/255,GD=G>R&&G>B;if(E>T&&GD){PC++;const Mx=Math.max(R,G,B),Mn=Math.min(R,G,B),D2=Mx-Mn;let S2=D2==0?0:D2/(1-Math.abs(2*(Mx/255)-1));S2=Math.max(0,Math.min(1,S2));TS+=S2;TV+=G/255}o[i]=E>T&&GD?0:Math.max(R,G,B);o[i+1]=E>T&&GD?255:Math.max(R,G,B);o[i+2]=E>T&&GD?0:Math.max(R,G,B);o[i+3]=255}S.ana.pixels=PC;S.ana.total=TC;S.ana.cov=Math.round((PC/TC)*10000)/100;S.ana.health=PC>0?Math.round(((TS/PC)+(TV/PC))/2*100):0;if(S.cal.mpp){const S2=S.cal.unit=='m'?1:1/.3048,MP=S.cal.mpp*S2;S.ana.area=Math.round(PC*Math.pow(MP,2)*100)/100;S.ana.tarea=Math.round(TC*Math.pow(MP,2)*100)/100;PA.textContent=`${S.ana.area} ${S.cal.unit}²`;TA.textContent=`${S.ana.tarea} ${S.cal.unit}²`}else{PA.textContent='0 m²';TA.textContent='0 m²'}CP.textContent=S.ana.cov+'%';HI.textContent=S.ana.health+'%';S.ana.on=true;ANASEC.style.display='block';ANB.disabled=false;TOB.disabled=false;SAVB.disabled=false;RS.style.display='block';renderOverlay();showSuccess('Analysis complete!')}
-function saveMeasure(){if(!S.ana.on){showError('Analyze first');return}const M={id:Date.now(),name:`M${S.measures.length+1}`,timestamp:new Date().toISOString(),cov:S.ana.cov,px:S.ana.pixels,tpx:S.ana.total,area:S.ana.area,tarea:S.ana.tarea,health:S.ana.health,cal:S.cal.mpp?{dist:S.cal.dist,unit:S.cal.unit,mpp:S.cal.mpp}:null,sens:S.ana.sens,region:S.target.on?'target':S.square.on?'square':'full'};S.measures.unshift(M);localStorage.setItem('cs_measures',JSON.stringify(S.measures));showSuccess('Saved!');renderHistory();clearAnalysis()}
-function loadMeasurements(){const S2=localStorage.getItem('cs_measures');if(S2)S.measures=JSON.parse(S2);renderHistory()}
-function renderHistory(){if(!S.measures.length){HL.innerHTML='<div class="empty-state"><div class="empty-state-icon">📜</div><h3>No Measurements</h3><p>Analyze and save to see here.</p></div>';CC.style.display='none';return}let H='';S.measures.forEach((M,i)=>{const D=new Date(M.timestamp),SC=S.sel.includes(M.id);H+=`<div class="history-card"><div class="history-card-hdr"><input type="checkbox" id="s-${M.id}" onchange="toggleSelection(${M.id})" ${SC?'checked':''} style="margin-right:10px"><div class="history-card-title" contenteditable onblur="renameMeasure(${M.id},this.textContent)">${M.name}</div></div><div class="history-card-date">${D.toLocaleDateString()} ${D.toLocaleTimeString()}</div><div class="history-stats"><div class="history-stat"><div class="history-stat-value">${M.cov}%</div><div class="history-stat-lbl">Coverage</div></div><div class="history-stat"><div class="history-stat-value">${M.area||'0 m²'}</div><div class="history-stat-lbl">Area</div></div><div class="history-stat"><div class="history-stat-value">${M.health}%</div><div class="history-stat-lbl">Health</div></div></div></div>`});HL.innerHTML=H;if(S.sel.length>=2)CC.style.display='block'}
-function toggleSelection(id){const I=S.sel.indexOf(id);if(I>-1)S.sel.splice(I,1);else S.sel.push(id);if(S.sel.length>=2)CC.style.display='block';else CH.style.display='none'}
-function renameMeasure(id,n){const M=S.measures.find(M=>M.id==id);if(M){M.name=n;localStorage.setItem('cs_measures',JSON.stringify(S.measures))}}
-function clearSelection(){S.sel=[];renderHistory();CH.style.display='none';CC.style.display='none'}
-function doCompare(){const SL=S.measures.filter(M=>S.sel.includes(M.id));if(SL.length<2){showError('Select >=2');return}SL.sort((A,B)=>new Date(A.timestamp)-new Date(B.timestamp));let H='',MC=0;SL.forEach(M=>{MC=Math.max(MC,M.cov)});SL.forEach(M=>{const D=new Date(M.timestamp),BW=(M.cov/MC)*100;H+=`<div class="compare-bar"><div class="compare-bar-lbl">${M.name} (${D.toLocaleDateString()})</div><div class="bar-ctr"><div class="bar-fill" style="width:${BW}%" title="${M.cov}%"></div><div class="bar-value">${M.cov}%</div></div></div>`});CB.innerHTML=H;CH.style.display='block'}
-function exportExcel(){const SL=S.measures.filter(M=>S.sel.includes(M.id));if(!SL.length)return;const WB=XLSX.utils.book_new(),D=[['Measurement','Date','Coverage %','Plant Area','Health']];SL.forEach(M=>{D.push([M.name,new Date(M.timestamp).toLocaleString(),M.cov+'%',M.area||'N/A',M.health+'%'])});const WS=XLSX.utils.aoa_to_sheet(D);XLSX.utils.book_append_sheet(WB,WS,'Comparison');XLSX.writeFile(WB,`CS-Compare-${new Date().toISOString().split('T')[0]}.xlsx`)}
-function exportPDF(){const{jsPDF}=window.jspdf,doc=new jsPDF();const SL=S.measures.filter(M=>S.sel.includes(M.id));if(!SL.length)return;doc.setFontSize(18);doc.text('CoverScope Comparison',105,20,{align:'center'});doc.setFontSize(12);doc.text(new Date().toLocaleDateString(),105,30,{align:'center'});let Y=40;doc.setFontSize(10);doc.text(['Measurement','Date','Coverage','Health'].join(', '),10,Y);Y+=10;SL.forEach(M=>{const D=new Date(M.timestamp).toLocaleDateString();doc.text([M.name,D,M.cov+'%',M.health+'%'].join(', '),10,Y);Y+=10});doc.save(`CS-Compare-${new Date().toISOString().split('T')[0]}.pdf`)}
-function clearAll(){S.original=null;S.working=null;S.imgScale=1;S.offset={x:0,y:0};S.zoom=1;S.cal={on:false,points:[],dist:null,unit:'m',mpp:null};S.ana={on:false,sens:50,pixels:0,total:0,cov:0,area:0,tarea:0,health:0};S.target={on:false};S.square={on:false};S.volume={on:false};S.brush={on:'off',size:10,brushData:null};S.overlay=true;U.style.display='block';IC.style.display='none';CALSEC.style.display='none';ANASEC.style.display='none';RS.style.display='none';VS.style.display='none';CSB.style.display='none';PCI.style.display='none';SCB.style.display='inline-block';CCB.style.display='none';CDI.value='';ANB.disabled=true;TOB.disabled=true;SAVB.disabled=true;CP.textContent='0%';PA.textContent='0 m²';TA.textContent='0 m²';HI.textContent='0%';setBrush('off');BC.classList.remove('active');const C1=IMC.getContext('2d'),C2=OC.getContext('2d'),C3=DC.getContext('2d');[C1,C2,C3].forEach(C=>C.clearRect(0,0,C.canvas.width,C.canvas.height))}
-function clearAnalysis(){S.ana.on=false;S.ana.pixels=0;S.ana.total=0;S.ana.cov=0;S.ana.area=0;S.ana.tarea=0;S.ana.health=0;ANASEC.style.display='none';ANB.disabled=true;TOB.disabled=true;SAVB.disabled=true;CP.textContent='0%';PA.textContent='0 m²';TA.textContent='0 m²';HI.textContent='0%'}
-function showLoading(){LO.classList.add('active')}
-function hideLoading(){LO.classList.remove('active')}
-function showError(M){EM.textContent=M;EM.classList.add('active');setTimeout(()=>EM.classList.remove('active'),5000)}
-function showSuccess(M){EM.textContent=M;EM.className='msg succ-msg active';setTimeout(()=>EM.classList.remove('active'),3000)}
-function openModal(){MODAL.classList.add('active')}
-function closeModal(){MODAL.classList.remove('active')}
-function zoomIn(){const N=Math.min(S.maxZ,S.zoom*1.2);if(N!==S.zoom){const R=IMC.getBoundingClientRect(),MX=(window.innerWidth/2-R.left)/S.zoom,MY=(window.innerHeight/2-R.top)/S.zoom;S.offset.x-=MX*(N-S.zoom);S.offset.y-=MY*(N-S.zoom);S.zoom=N;renderImage()}}
-function zoomOut(){const N=Math.max(S.minZ,S.zoom/1.2);if(N!==S.zoom){S.zoom=N;renderImage()}}
-function resetView(){S.zoom=1;S.offset={x:0,y:0};renderImage()}
-function calcVol(){const H=[parseFloat(document.getElementById('hNW').value)||0,parseFloat(document.getElementById('hNE').value)||0,parseFloat(document.getElementById('hSE').value)||0,parseFloat(document.getElementById('hSW').value)||0,parseFloat(document.getElementById('hC').value)||0];const AH=H.reduce((A,B)=>A+B,0)/H.length,CV=parseFloat(CP.textContent)/100,V=AH*CV*1;VV.textContent=V.toFixed(2)+' m³';VR.style.display='block'}
-function volChanged(){VR.style.display='none'}
-function openMethods(){openModal()}
-document.addEventListener('DOMContentLoaded',init);
-document.addEventListener('keydown',handleKeyDown);
-IMC.addEventListener('mousedown',handleMouseDown);IMC.addEventListener('mousemove',handleMouseMove);IMC.addEventListener('mouseup',handleMouseUp);IMC.addEventListener('mouseleave',handleMouseUp);IMC.addEventListener('wheel',handleWheel);IW.addEventListener('touchstart',handleTouchStart);IW.addEventListener('touchmove',handleTouchMove);IW.addEventListener('touchend',handleTouchEnd);
+// ─── DOM refs ─────────────────────────────────────────────────────────────────
+const U    = document.getElementById('uploadSection');
+const FI   = document.getElementById('fileInput');
+const IC   = document.getElementById('imgCtr');
+const IW   = document.getElementById('imgWrap');
+const IMC  = document.getElementById('imageCanvas');
+const OC   = document.getElementById('overlayCanvas');
+const DC   = document.getElementById('drawingCanvas');
+const ST   = document.getElementById('squareTool');
+const CALSEC = document.getElementById('calSec');
+const ANASEC = document.getElementById('anaSec');
+const RS   = document.getElementById('resultsSec');
+const CSB  = document.getElementById('calStatus');
+const CDI  = document.getElementById('calDist');
+const CUN  = document.getElementById('calUnit');
+const SCB  = document.getElementById('startCalBtn');
+const CCB  = document.getElementById('clearCalBtn');
+const PCI  = document.getElementById('calPointsInfo');
+const PCS  = document.getElementById('pointsCount');
+const SS   = document.getElementById('sensSlider');
+const SV   = document.getElementById('sensVal');
+const TBTN = document.getElementById('targetBtn');
+const SBTN = document.getElementById('squareBtn');
+const VBTN = document.getElementById('volumeBtn');
+const BBTN = document.getElementById('brushBtn');
+const BC   = document.getElementById('brushCtrls');
+const ABTN = document.getElementById('addBtn');
+const EBTN = document.getElementById('eraseBtn');
+const BS   = document.getElementById('brushSize');
+const BSV  = document.getElementById('brushSizeVal');
+const ANB  = document.getElementById('analyzeBtn');
+const TOB  = document.getElementById('toggleBtn');
+const SAVB = document.getElementById('saveBtn');
+const CP   = document.getElementById('covPct');
+const PA   = document.getElementById('plantArea');
+const TA   = document.getElementById('totalArea');
+const HI   = document.getElementById('healthIdx');
+const VS   = document.getElementById('volSec');
+const VR   = document.getElementById('volRes');
+const VV   = document.getElementById('volVal');
+const HL   = document.getElementById('historyList');
+const CCT  = document.getElementById('compareCtrls');
+const CH   = document.getElementById('compareChart');
+const CB   = document.getElementById('compareBars');
+const EM   = document.getElementById('errorMsg');
+const LO   = document.getElementById('loading');
+const MODAL= document.getElementById('modal');
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+function init() {
+  setupFileUpload();
+  loadMeasurements();
+  setupTabs();
+}
+
+function setupTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => { if (btn.dataset.tab) switchTab(btn.dataset.tab); });
+  });
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(name + '-tab').classList.add('active');
+  const btn = document.querySelector('[data-tab="' + name + '"]');
+  if (btn) btn.classList.add('active');
+}
+
+// ─── File upload ──────────────────────────────────────────────────────────────
+function setupFileUpload() {
+  FI.addEventListener('change', handleUpload);
+  U.addEventListener('dragover',  e => { e.preventDefault(); U.classList.add('drag-over'); });
+  U.addEventListener('dragleave', e => { e.preventDefault(); U.classList.remove('drag-over'); });
+  U.addEventListener('drop', handleDrop);
+  U.addEventListener('click', () => FI.click());
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  U.classList.remove('drag-over');
+  const f = e.dataTransfer.files;
+  if (f && f[0] && f[0].type.startsWith('image/')) processImage(f[0]);
+}
+
+function handleUpload(e) {
+  const f = e.target.files[0];
+  if (f && f.type.startsWith('image/')) processImage(f);
+  else showError('Please select a valid image file.');
+}
+
+function processImage(f) {
+  clearAll();
+  EM.classList.remove('active');
+  const R = new FileReader();
+  R.onload = function(e) {
+    const I = new Image();
+    I.onload = () => {
+      S.original = I;
+      downscaleImage();
+      U.style.display = 'none';
+      IC.style.display = 'block';
+      CALSEC.style.display = 'block';
+      // FIX: show analysis section immediately after image loads
+      ANASEC.style.display = 'block';
+      showSuccess('Image loaded. Calibrate for real-world area, or click Analyze now.');
+    };
+    I.onerror = () => showError('Could not load image.');
+    I.src = e.target.result;
+  };
+  R.readAsDataURL(f);
+}
+
+function downscaleImage() {
+  const I = S.original, M = 1200;
+  const ratio = Math.min(M / I.width, M / I.height);
+  const W = Math.round(I.width * ratio), H = Math.round(I.height * ratio);
+  const C = document.createElement('canvas');
+  C.width = W; C.height = H;
+  C.getContext('2d').drawImage(I, 0, 0, W, H);
+  S.working = new Image();
+  S.working.onload = renderImage;
+  S.working.src = C.toDataURL();
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function renderImage() {
+  if (!S.working) return;
+  const I = S.working;
+  const DW = I.width * S.zoom, DH = I.height * S.zoom;
+  [IMC, OC, DC].forEach(c => { c.width = DW; c.height = DH; });
+  const X = IMC.getContext('2d');
+  X.clearRect(0, 0, DW, DH);
+  X.save();
+  X.translate(S.offset.x, S.offset.y);
+  X.scale(S.zoom, S.zoom);
+  X.drawImage(I, 0, 0);
+  X.restore();
+  renderOverlay();
+  renderDrawing();
+  renderSquareTool();
+  renderTargetOverlay();
+}
+
+function renderOverlay() {
+  if (!S.working) return;
+  const C = OC, X = C.getContext('2d');
+  X.clearRect(0, 0, C.width, C.height);
+  if (!S.ana.on || !S.overlay) return;
+
+  const I = S.working;
+  const tmpC = document.createElement('canvas');
+  tmpC.width = I.width; tmpC.height = I.height;
+  const TX = tmpC.getContext('2d');
+  TX.drawImage(I, 0, 0);
+  const ID = TX.getImageData(0, 0, I.width, I.height);
+  const T = getThreshold();
+  const d = ID.data;
+
+  X.save();
+  X.translate(S.offset.x, S.offset.y);
+  X.scale(S.zoom, S.zoom);
+
+  for (let y = 0; y < I.height; y++) {
+    for (let x = 0; x < I.width; x++) {
+      const i = (y * I.width + x) * 4;
+      const r = d[i], g = d[i+1], b = d[i+2];
+      const E = (2*g - r - b) / 255;
+      const GD = g > r && g > b;
+      if (E > T && GD) {
+        X.fillStyle = 'rgba(76,175,80,0.55)';
+      } else {
+        X.fillStyle = 'rgba(0,0,0,0.35)';
+      }
+      X.fillRect(x, y, 1, 1);
+    }
+  }
+  X.restore();
+}
+
+function renderDrawing() {
+  if (!S.working) return;
+  const C = DC, X = C.getContext('2d');
+  X.clearRect(0, 0, C.width, C.height);
+  if (!S.brushData) return;
+  X.save();
+  X.translate(S.offset.x, S.offset.y);
+  X.scale(S.zoom, S.zoom);
+  X.lineCap = 'round';
+  X.lineJoin = 'round';
+  (S.brushData.add || []).forEach(seg => {
+    X.strokeStyle = 'rgba(76,175,80,0.7)';
+    X.lineWidth = seg.size;
+    X.beginPath();
+    X.moveTo(seg.x1, seg.y1);
+    X.lineTo(seg.x2, seg.y2);
+    X.stroke();
+  });
+  (S.brushData.erase || []).forEach(seg => {
+    X.strokeStyle = 'rgba(26,30,31,0.9)';
+    X.lineWidth = seg.size;
+    X.beginPath();
+    X.moveTo(seg.x1, seg.y1);
+    X.lineTo(seg.x2, seg.y2);
+    X.stroke();
+  });
+  X.restore();
+}
+
+function renderSquareTool() {
+  // FIX: removed the dead early return — now actually positions the square
+  if (!S.square.on || !S.working) { ST.style.display = 'none'; return; }
+  ST.style.display = 'block';
+  const ox = S.offset.x, oy = S.offset.y, z = S.zoom;
+  ST.style.left   = (S.square.x * z + ox) + 'px';
+  ST.style.top    = (S.square.y * z + oy) + 'px';
+  ST.style.width  = (S.square.w * z) + 'px';
+  ST.style.height = (S.square.h * z) + 'px';
+}
+
+function renderTargetOverlay() {
+  if (!S.target.on || !S.working) return;
+  const X = OC.getContext('2d');
+  const ox = S.offset.x, oy = S.offset.y, z = S.zoom;
+  // dim outside target
+  X.save();
+  X.fillStyle = 'rgba(0,0,0,0.4)';
+  // top
+  X.fillRect(0, 0, OC.width, S.target.y * z + oy);
+  // bottom
+  X.fillRect(0, (S.target.y + S.target.h) * z + oy, OC.width, OC.height);
+  // left
+  X.fillRect(0, S.target.y * z + oy, S.target.x * z + ox, S.target.h * z);
+  // right
+  X.fillRect((S.target.x + S.target.w) * z + ox, S.target.y * z + oy, OC.width, S.target.h * z);
+  // border
+  X.strokeStyle = 'rgba(76,175,80,0.9)';
+  X.lineWidth = 2;
+  X.strokeRect(S.target.x * z + ox, S.target.y * z + oy, S.target.w * z, S.target.h * z);
+  X.restore();
+}
+
+// ─── Calibration ─────────────────────────────────────────────────────────────
+function startCal() {
+  S.cal.on = true;
+  S.cal.points = [];
+  PCS.textContent = '0/2';
+  PCI.style.display = 'block';
+  SCB.textContent = 'Calibrating…';
+  CCB.style.display = 'inline-flex';
+  IMC.style.cursor = 'crosshair';
+  showSuccess('Click two points of known distance on the image.');
+}
+
+function completeCalibration() {
+  const D = parseFloat(CDI.value);
+  if (isNaN(D) || D <= 0) {
+    showError('Enter a valid distance first, then click Start Calibration.');
+    S.cal.on = false; S.cal.points = []; PCS.textContent = '0/2';
+    SCB.textContent = 'Start Calibration';
+    return;
+  }
+  const P1 = S.cal.points[0], P2 = S.cal.points[1];
+  const PD = Math.sqrt(Math.pow(P2.x - P1.x, 2) + Math.pow(P2.y - P1.y, 2));
+  if (PD < 2) { showError('Points too close — try again.'); S.cal.points = []; S.cal.on = true; PCS.textContent = '0/2'; return; }
+  S.cal.dist = D;
+  S.cal.unit = CUN.value;
+  const DI = S.cal.unit === 'm' ? D : D * 0.3048;
+  S.cal.mpp = DI / PD;
+  S.cal.on = false;
+  CSB.textContent = `Calibrated: ${D} ${S.cal.unit}`;
+  CSB.style.display = 'inline-block';
+  PCI.style.display = 'none';
+  SCB.textContent = 'Re-calibrate';
+  IMC.style.cursor = '';
+  showSuccess('Scale calibrated! Now click Analyze.');
+}
+
+function clearCal() {
+  S.cal.on = false; S.cal.points = []; S.cal.dist = null; S.cal.mpp = null;
+  PCS.textContent = '0/2'; PCI.style.display = 'none';
+  SCB.textContent = 'Start Calibration'; CCB.style.display = 'none';
+  CSB.style.display = 'none'; CDI.value = '';
+  PA.textContent = '–'; TA.textContent = '–';
+  IMC.style.cursor = '';
+}
+
+// ─── Tool toggles ─────────────────────────────────────────────────────────────
+function toggleTarget() {
+  S.target.on = !S.target.on;
+  if (S.target.on) {
+    if (!S.working) return;
+    S.target = {on:true, x:50, y:50, w:Math.min(200, S.working.width-60), h:Math.min(200, S.working.height-60), drag:false};
+    S.square.on = false; SBTN.classList.remove('active');
+    showSuccess('Drag inside image to draw target area, then Analyze.');
+  } else {
+    S.target.on = false;
+  }
+  TBTN.classList.toggle('active', S.target.on);
+  renderImage();
+  if (S.ana.on) analyze();
+}
+
+function toggleSquare() {
+  if (!S.cal.mpp) { showError('Calibrate scale first to use 1m² Square.'); return; }
+  S.square.on = !S.square.on;
+  if (S.square.on) {
+    const sz = Math.round(1 / S.cal.mpp);
+    S.square.x = Math.round((S.working.width  - sz) / 2);
+    S.square.y = Math.round((S.working.height - sz) / 2);
+    S.square.w = sz; S.square.h = sz;
+    S.target.on = false; TBTN.classList.remove('active');
+    VS.classList.add('active');
+    showSuccess('Drag the square to position it, then Analyze.');
+  } else {
+    VS.classList.remove('active');
+    VR.style.display = 'none';
+  }
+  SBTN.classList.toggle('active', S.square.on);
+  renderImage();
+  if (S.ana.on) analyze();
+}
+
+function toggleVolume() {
+  S.volume.on = !S.volume.on;
+  VBTN.classList.toggle('active', S.volume.on);
+  if (S.volume.on && !S.square.on) toggleSquare();
+}
+
+// ─── Brush ────────────────────────────────────────────────────────────────────
+function cycleBrush() {
+  if (S.brush.on === 'off') {
+    S.brush.on = 'on';
+    BBTN.textContent = '✏️ Brush: ' + (S.brush.mode === 'add' ? 'Add' : 'Erase');
+    BBTN.classList.add('active');
+    BC.classList.add('active');
+    DC.classList.add('brush-active');
+  } else {
+    S.brush.on = 'off';
+    BBTN.textContent = '✏️ Brush: Off';
+    BBTN.classList.remove('active');
+    BC.classList.remove('active');
+    DC.classList.remove('brush-active');
+  }
+}
+
+function setBrushMode(m) {
+  S.brush.mode = m;
+  ABTN.classList.toggle('active', m === 'add');
+  EBTN.classList.toggle('active', m === 'erase');
+  if (S.brush.on !== 'off') BBTN.textContent = '✏️ Brush: ' + (m === 'add' ? 'Add' : 'Erase');
+}
+
+function updateBrush() {
+  S.brush.size = parseInt(BS.value);
+  BSV.textContent = S.brush.size + 'px';
+}
+
+// ─── Pointer helpers ──────────────────────────────────────────────────────────
+function canvasXY(e) {
+  const R = IMC.getBoundingClientRect();
+  return {
+    x: (e.clientX - R.left - S.offset.x) / S.zoom,
+    y: (e.clientY - R.top  - S.offset.y) / S.zoom
+  };
+}
+
+function clampToImage(pt) {
+  if (!S.working) return pt;
+  return {
+    x: Math.max(0, Math.min(S.working.width  - 1, pt.x)),
+    y: Math.max(0, Math.min(S.working.height - 1, pt.y))
+  };
+}
+
+// ─── Mouse / touch events ─────────────────────────────────────────────────────
+function handleMouseDown(e) {
+  e.preventDefault();
+  const pt = canvasXY(e);
+
+  if (S.cal.on) {
+    const cpt = clampToImage({x: Math.round(pt.x), y: Math.round(pt.y)});
+    S.cal.points.push(cpt);
+    PCS.textContent = S.cal.points.length + '/2';
+    // draw dot on overlay
+    const X = OC.getContext('2d');
+    X.fillStyle = '#4caf50';
+    X.beginPath();
+    X.arc(cpt.x * S.zoom + S.offset.x, cpt.y * S.zoom + S.offset.y, 5, 0, Math.PI*2);
+    X.fill();
+    if (S.cal.points.length === 2) completeCalibration();
+    return;
+  }
+
+  if (S.brush.on !== 'off') {
+    S.drawing = true;
+    S.lastP = clampToImage({x: Math.round(pt.x), y: Math.round(pt.y)});
+    if (!S.brushData) S.brushData = {add:[], erase:[]};
+    return;
+  }
+
+  if (S.target.on) {
+    const cp = clampToImage(pt);
+    S.target.drag = true;
+    S.dragStart = {x: cp.x, y: cp.y};
+    S.target.x = cp.x; S.target.y = cp.y; S.target.w = 0; S.target.h = 0;
+    return;
+  }
+
+  if (S.square.on) {
+    const cp = clampToImage(pt);
+    S.square.drag = true;
+    S.dragOff = {x: cp.x - S.square.x, y: cp.y - S.square.y};
+    return;
+  }
+
+  // pan
+  S.pan.on = true;
+  S.pan.start = {x: e.clientX, y: e.clientY};
+}
+
+function handleMouseMove(e) {
+  e.preventDefault();
+  const pt = canvasXY(e);
+
+  if (S.pan.on) {
+    S.offset.x += e.clientX - S.pan.start.x;
+    S.offset.y += e.clientY - S.pan.start.y;
+    S.pan.start = {x: e.clientX, y: e.clientY};
+    renderImage();
+    return;
+  }
+
+  if (S.drawing && S.lastP) {
+    const cp = clampToImage({x: Math.round(pt.x), y: Math.round(pt.y)});
+    const seg = {x1:S.lastP.x, y1:S.lastP.y, x2:cp.x, y2:cp.y, size:S.brush.size};
+    if (S.brush.mode === 'add') S.brushData.add.push(seg);
+    else S.brushData.erase.push(seg);
+    S.lastP = cp;
+    renderDrawing();
+    return;
+  }
+
+  if (S.target.drag && S.dragStart) {
+    const cp = clampToImage(pt);
+    S.target.x = Math.min(S.dragStart.x, cp.x);
+    S.target.y = Math.min(S.dragStart.y, cp.y);
+    S.target.w = Math.abs(cp.x - S.dragStart.x);
+    S.target.h = Math.abs(cp.y - S.dragStart.y);
+    renderImage();
+    return;
+  }
+
+  if (S.square.drag && S.dragOff) {
+    const cp = clampToImage(pt);
+    S.square.x = Math.max(0, Math.min(S.working.width  - S.square.w, Math.round(cp.x - S.dragOff.x)));
+    S.square.y = Math.max(0, Math.min(S.working.height - S.square.h, Math.round(cp.y - S.dragOff.y)));
+    renderSquareTool();
+    return;
+  }
+}
+
+function handleMouseUp(e) {
+  e.preventDefault();
+  const wasDrawing = S.drawing;
+  const wasDragging = S.target.drag || S.square.drag;
+  S.pan.on = false; S.drawing = false;
+  S.target.drag = false; S.square.drag = false;
+  if (S.ana.on && (wasDrawing || wasDragging)) analyze();
+}
+
+function handleWheel(e) {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? -0.1 : 0.1;
+  const N = Math.max(S.minZ, Math.min(S.maxZ, S.zoom + delta));
+  if (N !== S.zoom) {
+    const R = IMC.getBoundingClientRect();
+    const mx = e.clientX - R.left, my = e.clientY - R.top;
+    S.offset.x = mx - (mx - S.offset.x) * (N / S.zoom);
+    S.offset.y = my - (my - S.offset.y) * (N / S.zoom);
+    S.zoom = N;
+    renderImage();
+  }
+}
+
+function handleTouchStart(e) { e.preventDefault(); if(e.touches.length===1){const t=e.touches[0];handleMouseDown({clientX:t.clientX,clientY:t.clientY,preventDefault:()=>{}});}}
+function handleTouchMove(e)  { e.preventDefault(); if(e.touches.length===1){const t=e.touches[0];handleMouseMove({clientX:t.clientX,clientY:t.clientY,preventDefault:()=>{}});}}
+function handleTouchEnd(e)   { e.preventDefault(); handleMouseUp({preventDefault:()=>{}}); }
+
+function handleKeyDown(e) {
+  if (e.code === 'Space' && S.ana.on) { e.preventDefault(); toggleOverlay(); }
+}
+
+// ─── Zoom controls ────────────────────────────────────────────────────────────
+function zoomIn()    { const N=Math.min(S.maxZ,S.zoom*1.2); if(N!==S.zoom){S.zoom=N;renderImage();} }
+function zoomOut()   { const N=Math.max(S.minZ,S.zoom/1.2); if(N!==S.zoom){S.zoom=N;renderImage();} }
+function resetView() { S.zoom=1; S.offset={x:0,y:0}; renderImage(); }
+
+// ─── Analysis ─────────────────────────────────────────────────────────────────
+function getThreshold() {
+  return 0.03 + (0.22 - 0.03) * (100 - S.ana.sens) / 100;
+}
+
+function updateSens() {
+  S.ana.sens = parseInt(SS.value);
+  const labels = ['Aggressive','Moderate','Conservative'];
+  SV.textContent = labels[Math.floor(S.ana.sens / 50)];
+  if (S.ana.on) analyze();
+}
+
+function toggleOverlay() {
+  S.overlay = !S.overlay;
+  TOB.textContent = S.overlay ? '👁️ Toggle Overlay' : '👁️‍🗨 Show Overlay';
+  renderOverlay();
+}
+
+function analyze() {
+  if (!S.working) { showError('Upload an image first.'); return; }
+  showLoading();
+  setTimeout(() => {
+    try { performAnalysis(); hideLoading(); }
+    catch(err) { hideLoading(); showError('Analysis error: ' + err.message); }
+  }, 60);
+}
+
+function performAnalysis() {
+  const I = S.working;
+  let R = {x:0, y:0, width:I.width, height:I.height};
+  if (S.target.on && S.target.w > 5 && S.target.h > 5) {
+    R = {x:Math.round(S.target.x), y:Math.round(S.target.y), width:Math.round(S.target.w), height:Math.round(S.target.h)};
+  } else if (S.square.on) {
+    R = {x:Math.round(S.square.x), y:Math.round(S.square.y), width:Math.round(S.square.w), height:Math.round(S.square.h)};
+  }
+
+  const C = document.createElement('canvas');
+  C.width = R.width; C.height = R.height;
+  const X = C.getContext('2d');
+  X.drawImage(I, R.x, R.y, R.width, R.height, 0, 0, R.width, R.height);
+  const ID = X.getImageData(0, 0, R.width, R.height);
+  const o = ID.data, T = getThreshold();
+  const TC = R.width * R.height;
+  let PC = 0, TS = 0, TV = 0;
+
+  for (let i = 0; i < o.length; i += 4) {
+    const r = o[i], g = o[i+1], b = o[i+2];
+    const E = (2*g - r - b) / 255;
+    const GD = g > r && g > b;
+    if (E > T && GD) {
+      PC++;
+      const Mx = Math.max(r,g,b), Mn = Math.min(r,g,b), D2 = Mx - Mn;
+      const sat = D2 === 0 ? 0 : D2 / (1 - Math.abs(2*(Mx/255)-1));
+      TS += Math.max(0, Math.min(1, sat));
+      TV += g / 255;
+    }
+  }
+
+  S.ana.pixels = PC; S.ana.total = TC;
+  S.ana.cov = Math.round((PC / TC) * 10000) / 100;
+  S.ana.health = PC > 0 ? Math.round(((TS/PC) + (TV/PC)) / 2 * 100) : 0;
+  S.ana.on = true;
+
+  if (S.cal.mpp) {
+    const mppUnit = S.cal.unit === 'm' ? S.cal.mpp : S.cal.mpp / 0.3048;
+    S.ana.area  = Math.round(PC * Math.pow(mppUnit, 2) * 100) / 100;
+    S.ana.tarea = Math.round(TC * Math.pow(mppUnit, 2) * 100) / 100;
+    PA.textContent = S.ana.area  + ' ' + S.cal.unit + '²';
+    TA.textContent = S.ana.tarea + ' ' + S.cal.unit + '²';
+  } else {
+    S.ana.area = 0; S.ana.tarea = 0;
+    PA.textContent = 'calibrate for area';
+    TA.textContent = 'calibrate for area';
+  }
+
+  CP.textContent = S.ana.cov + '%';
+  HI.textContent = S.ana.health + '%';
+  TOB.disabled = false; SAVB.disabled = false;
+  RS.style.display = 'block';
+  renderOverlay();
+  showSuccess('Analysis complete!');
+}
+
+// ─── Save / history ───────────────────────────────────────────────────────────
+function saveMeasure() {
+  if (!S.ana.on) { showError('Run analysis first.'); return; }
+  const M = {
+    id: Date.now(),
+    name: 'M' + (S.measures.length + 1),
+    timestamp: new Date().toISOString(),
+    cov: S.ana.cov, px: S.ana.pixels, tpx: S.ana.total,
+    area: S.ana.area, tarea: S.ana.tarea, health: S.ana.health,
+    unit: S.cal.unit || 'm',
+    sens: S.ana.sens,
+    region: S.target.on ? 'target' : S.square.on ? 'square' : 'full'
+  };
+  S.measures.unshift(M);
+  localStorage.setItem('cs_measures', JSON.stringify(S.measures));
+  showSuccess('Measurement saved!');
+  renderHistory();
+}
+
+function loadMeasurements() {
+  try {
+    const saved = localStorage.getItem('cs_measures');
+    if (saved) S.measures = JSON.parse(saved);
+  } catch(e) { S.measures = []; }
+  renderHistory();
+}
+
+function renderHistory() {
+  if (!S.measures.length) {
+    HL.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><h3>No Measurements Yet</h3><p>Analyze and save to see results here.</p></div>';
+    CCT.style.display = 'none'; return;
+  }
+  let H = '';
+  S.measures.forEach(M => {
+    const D = new Date(M.timestamp);
+    const sel = S.sel.includes(M.id);
+    H += `<div class="history-card">
+      <div class="history-card-hdr">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="checkbox" id="s-${M.id}" onchange="toggleSelection(${M.id})" ${sel?'checked':''}>
+          <span class="history-card-title" contenteditable onblur="renameMeasure(${M.id},this.textContent)">${M.name}</span>
+        </label>
+      </div>
+      <div class="history-card-date">${D.toLocaleDateString()} ${D.toLocaleTimeString()}</div>
+      <div class="history-stats">
+        <div class="history-stat"><div class="history-stat-value">${M.cov}%</div><div class="history-stat-lbl">Coverage</div></div>
+        <div class="history-stat"><div class="history-stat-value">${M.area ? M.area+' '+(M.unit||'m')+'²' : '–'}</div><div class="history-stat-lbl">Area</div></div>
+        <div class="history-stat"><div class="history-stat-value">${M.health}%</div><div class="history-stat-lbl">Health</div></div>
+      </div>
+    </div>`;
+  });
+  HL.innerHTML = H;
+  CCT.style.display = S.sel.length >= 2 ? 'flex' : 'none';
+}
+
+function toggleSelection(id) {
+  const idx = S.sel.indexOf(id);
+  if (idx > -1) S.sel.splice(idx, 1); else S.sel.push(id);
+  CCT.style.display = S.sel.length >= 2 ? 'flex' : 'none';
+  if (S.sel.length < 2) CH.style.display = 'none';
+}
+
+function renameMeasure(id, n) {
+  const M = S.measures.find(m => m.id === id);
+  if (M) { M.name = n.trim() || M.name; localStorage.setItem('cs_measures', JSON.stringify(S.measures)); }
+}
+
+function clearSelection() {
+  S.sel = []; renderHistory(); CH.style.display = 'none'; CCT.style.display = 'none';
+}
+
+function doCompare() {
+  const SL = S.measures.filter(m => S.sel.includes(m.id));
+  if (SL.length < 2) { showError('Select at least 2 measurements.'); return; }
+  SL.sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+  const MC = Math.max(...SL.map(m => m.cov));
+  let H = '';
+  SL.forEach(M => {
+    const D = new Date(M.timestamp);
+    const BW = MC > 0 ? (M.cov/MC)*100 : 0;
+    H += `<div class="compare-bar">
+      <div class="compare-bar-lbl">${M.name} (${D.toLocaleDateString()})</div>
+      <div class="bar-ctr"><div class="bar-fill" style="width:${BW}%"></div><div class="bar-value">${M.cov}%</div></div>
+    </div>`;
+  });
+  CB.innerHTML = H; CH.style.display = 'block'; CH.classList.add('active');
+}
+
+function exportExcel() {
+  const SL = S.measures.filter(m => S.sel.includes(m.id));
+  if (!SL.length) return;
+  const WB = XLSX.utils.book_new();
+  const D  = [['Measurement','Date','Coverage %','Plant Area','Total Area','Health %']];
+  SL.forEach(M => D.push([M.name, new Date(M.timestamp).toLocaleString(), M.cov+'%', M.area||'N/A', M.tarea||'N/A', M.health+'%']));
+  const WS = XLSX.utils.aoa_to_sheet(D);
+  XLSX.utils.book_append_sheet(WB, WS, 'Comparison');
+  XLSX.writeFile(WB, `CoverScope-${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+function exportPDF() {
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF();
+  const SL = S.measures.filter(m => S.sel.includes(m.id));
+  if (!SL.length) return;
+  doc.setFontSize(18); doc.text('CoverScope Comparison', 105, 20, {align:'center'});
+  doc.setFontSize(10); doc.text(new Date().toLocaleDateString(), 105, 30, {align:'center'});
+  let Y = 45;
+  doc.setFontSize(9);
+  doc.text('Measurement | Date | Coverage | Area | Health', 10, Y); Y += 8;
+  SL.forEach(M => {
+    doc.text([M.name, new Date(M.timestamp).toLocaleDateString(), M.cov+'%', (M.area||'N/A')+'', M.health+'%'].join(' | '), 10, Y);
+    Y += 8;
+  });
+  doc.save(`CoverScope-${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+// ─── Volume ───────────────────────────────────────────────────────────────────
+function calcVol() {
+  const vals = ['hNW','hNE','hSE','hSW','hC'].map(id => parseFloat(document.getElementById(id).value) || 0);
+  const avgH = vals.reduce((a,b) => a+b, 0) / vals.length;
+  const covFrac = S.ana.cov / 100;
+  VV.textContent = (avgH * covFrac * 1).toFixed(3) + ' m³';
+  VR.style.display = 'block';
+}
+function volChanged() { VR.style.display = 'none'; }
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+function clearAll() {
+  S.original = null; S.working = null;
+  S.offset = {x:0,y:0}; S.zoom = 1;
+  S.cal = {on:false,points:[],dist:null,unit:'m',mpp:null};
+  S.ana = {on:false,sens:50,pixels:0,total:0,cov:0,area:0,tarea:0,health:0};
+  S.target = {on:false,x:0,y:0,w:0,h:0,drag:false};
+  S.square = {on:false,x:0,y:0,w:100,h:100,drag:false};
+  S.volume = {on:false}; S.brush = {on:'off',mode:'add',size:10};
+  S.overlay = true; S.drawing = false; S.lastP = null;
+  S.pan = {on:false,start:{x:0,y:0}}; S.brushData = null;
+  U.style.display = 'block'; IC.style.display = 'none';
+  CALSEC.style.display = 'none'; ANASEC.style.display = 'none'; RS.style.display = 'none';
+  VS.classList.remove('active'); VR.style.display = 'none';
+  CSB.style.display = 'none'; PCI.style.display = 'none';
+  SCB.textContent = 'Start Calibration'; CCB.style.display = 'none'; CDI.value = '';
+  TOB.disabled = true; SAVB.disabled = true;
+  CP.textContent = '0%'; PA.textContent = '–'; TA.textContent = '–'; HI.textContent = '0%';
+  TBTN.classList.remove('active'); SBTN.classList.remove('active'); VBTN.classList.remove('active');
+  BBTN.classList.remove('active'); BBTN.textContent = '✏️ Brush: Off';
+  BC.classList.remove('active'); DC.classList.remove('brush-active');
+  ST.style.display = 'none';
+  [IMC, OC, DC].forEach(c => { const x = c.getContext('2d'); x.clearRect(0,0,c.width,c.height); });
+}
+
+function showLoading() { LO.classList.add('active'); }
+function hideLoading() { LO.classList.remove('active'); }
+
+function showError(M) {
+  EM.textContent = M; EM.className = 'msg error-msg active';
+  setTimeout(() => EM.classList.remove('active'), 5000);
+}
+function showSuccess(M) {
+  EM.textContent = M; EM.className = 'msg succ-msg active';
+  setTimeout(() => EM.classList.remove('active'), 3000);
+}
+
+function openMethods() { MODAL.classList.add('active'); }
+function closeModal()  { MODAL.classList.remove('active'); }
+
+// ─── Event listeners ──────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('keydown', handleKeyDown);
+
+// FIX: attach pointer events to IMC (not DC), so they always fire regardless of brush state
+IMC.addEventListener('mousedown',  handleMouseDown);
+IMC.addEventListener('mousemove',  handleMouseMove);
+IMC.addEventListener('mouseup',    handleMouseUp);
+IMC.addEventListener('mouseleave', handleMouseUp);
+IMC.addEventListener('wheel',      handleWheel, {passive:false});
+
+// Touch events on the wrapper so panning works across the whole canvas area
+IW.addEventListener('touchstart',  handleTouchStart, {passive:false});
+IW.addEventListener('touchmove',   handleTouchMove,  {passive:false});
+IW.addEventListener('touchend',    handleTouchEnd,   {passive:false});
+
+// FIX: brush drawing also needs to go to DC so strokes appear, but logic lives in IMC handler
+DC.addEventListener('mousedown',  handleMouseDown);
+DC.addEventListener('mousemove',  handleMouseMove);
+DC.addEventListener('mouseup',    handleMouseUp);
+DC.addEventListener('mouseleave', handleMouseUp);
 </script>
 </body>
 </html>
+
+
+
+
+
+
+F
+
