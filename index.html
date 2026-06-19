@@ -6,6 +6,7 @@
     <title>CoverScope - AI Plant Coverage Measurement</title>
     <meta name="description" content="Measure plant coverage with precise AI accuracy">
     <meta name="theme-color" content="#1a1e1f">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.0/xlsx.full.min.js"></script>
     <style>
         :root {
             --bg-primary: #1a1e1f;
@@ -21,11 +22,7 @@
             --error: #f44336;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
@@ -35,396 +32,106 @@
             padding: 20px;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+        .container { max-width: 1200px; margin: 0 auto; }
 
-        header {
-            text-align: center;
-            padding: 40px 20px;
-        }
+        header { text-align: center; padding: 40px 20px; }
+        .logo { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 20px; }
+        .logo-icon { width: 60px; height: 60px; background: linear-gradient(135deg, var(--accent), #2e7d32); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+        .logo h1 { font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, var(--accent), #81c784); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .tagline { font-size: 1.1rem; color: var(--text-secondary); max-width: 600px; margin: 0 auto; }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
+        .main-content { background: var(--bg-secondary); border-radius: 20px; padding: 30px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); margin-top: 30px; }
 
-        .logo-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--accent), #2e7d32);
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-        }
+        .upload-section { border: 2px dashed var(--border); border-radius: 15px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s ease; background: var(--bg-tertiary); margin-bottom: 30px; }
+        .upload-section:hover { border-color: var(--accent); background: rgba(76, 175, 80, 0.1); }
+        .upload-section.drag-over { border-color: var(--accent); background: rgba(76, 175, 80, 0.2); }
+        .upload-icon { font-size: 3rem; color: var(--accent); margin-bottom: 20px; }
+        .upload-text h3 { font-size: 1.3rem; margin-bottom: 10px; }
+        .upload-text p { color: var(--text-secondary); font-size: 0.95rem; }
+        .file-input { display: none; }
 
-        .logo h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--accent), #81c784);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+        .results-section { display: none; margin-top: 30px; }
+        .results-section.active { display: block; }
+        .image-preview-container { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
+        .image-wrapper { flex: 1; min-width: 300px; }
+        .image-wrapper canvas { width: 100%; border-radius: 10px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); }
+        .image-label { text-align: center; margin-top: 10px; font-weight: 600; color: var(--text-secondary); }
 
-        .tagline {
-            font-size: 1.1rem;
-            color: var(--text-secondary);
-            max-width: 600px;
-            margin: 0 auto;
-        }
+        .stats-card { background: var(--bg-tertiary); border-radius: 15px; padding: 25px; margin-bottom: 20px; }
+        .stats-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .stats-header h3 { font-size: 1.2rem; }
+        .coverage-badge { background: linear-gradient(135deg, var(--accent), #2e7d32); color: white; padding: 8px 20px; border-radius: 20px; font-weight: 700; font-size: 1.1rem; }
+        .stat-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .stat-item:last-child { border-bottom: none; }
+        .stat-label { color: var(--text-secondary); }
+        .stat-value { font-weight: 600; color: var(--accent); }
+        .progress-container { margin: 25px 0; }
+        .progress-bar { width: 100%; height: 12px; background: var(--bg-tertiary); border-radius: 6px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #81c784); border-radius: 6px; transition: width 0.5s ease; }
 
-        .main-content {
-            background: var(--bg-secondary);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            margin-top: 30px;
-        }
+        .controls { display: flex; gap: 15px; flex-wrap: wrap; margin: 25px 0; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 600; transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; }
+        .btn-primary { background: linear-gradient(135deg, var(--accent), #2e7d32); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4); }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-icon { font-size: 1.1rem; }
 
-        .upload-section {
-            border: 2px dashed var(--border);
-            border-radius: 15px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: var(--bg-tertiary);
-            margin-bottom: 30px;
-        }
+        .toggle-options { display: flex; gap: 15px; margin: 20px 0; flex-wrap: wrap; }
+        .toggle-btn { padding: 8px 16px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 20px; color: var(--text-secondary); cursor: pointer; transition: all 0.3s ease; font-size: 0.9rem; }
+        .toggle-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
 
-        .upload-section:hover {
-            border-color: var(--accent);
-            background: rgba(76, 175, 80, 0.1);
-        }
+        .comparison-section { display: none; margin-top: 30px; }
+        .comparison-section.active { display: block; }
+        .comparison-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .comparison-header h3 { font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
+        .comparison-toggle { background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 20px; padding: 6px 12px; cursor: pointer; font-size: 0.85rem; color: var(--text-secondary); transition: all 0.3s ease; }
+        .comparison-toggle.active { background: var(--accent); border-color: var(--accent); color: white; }
+        .comparison-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
+        .comparison-card { background: var(--bg-tertiary); border-radius: 15px; padding: 20px; border: 1px solid var(--border); transition: all 0.3s ease; }
+        .comparison-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+        .comparison-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+        .comparison-card-title { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+        .comparison-card-date { font-size: 0.75rem; color: var(--text-secondary); text-align: right; }
+        .comparison-card-badge { background: linear-gradient(135deg, var(--accent), #2e7d32); color: white; padding: 6px 12px; border-radius: 12px; font-weight: 700; font-size: 0.85rem; display: inline-block; margin-bottom: 10px; }
+        .comparison-card-stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        .comparison-card-stat:last-child { border-bottom: none; }
+        .comparison-card-stat-label { color: var(--text-secondary); }
+        .comparison-card-stat-value { font-weight: 600; color: var(--accent); }
+        .comparison-empty { text-align: center; padding: 40px; color: var(--text-secondary); }
+        .comparison-empty p { font-size: 0.95rem; }
+        .delete-btn { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; transition: all 0.3s ease; }
+        .delete-btn:hover { background: rgba(244, 67, 54, 0.2); color: var(--error); }
 
-        .upload-section.drag-over {
-            border-color: var(--accent);
-            background: rgba(76, 175, 80, 0.2);
-        }
+        .info-section { background: var(--bg-tertiary); border-radius: 15px; padding: 20px; margin-top: 30px; }
+        .info-section h3 { font-size: 1.1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+        .info-item { display: flex; align-items: flex-start; gap: 12px; }
+        .info-icon { color: var(--accent); font-size: 1.2rem; margin-top: 2px; }
+        .info-content p { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; }
 
-        .upload-icon {
-            font-size: 3rem;
-            color: var(--accent);
-            margin-bottom: 20px;
-        }
+        .loading-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); justify-content: center; align-items: center; z-index: 1000; }
+        .loading-overlay.active { display: flex; }
+        .spinner { width: 60px; height: 60px; border: 4px solid var(--bg-secondary); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        .upload-text h3 {
-            font-size: 1.3rem;
-            margin-bottom: 10px;
-        }
+        .error-message { display: none; padding: 15px; border-radius: 10px; margin: 20px 0; }
+        .error-message.active { display: block; }
 
-        .upload-text p {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-        }
-
-        .file-input {
-            display: none;
-        }
-
-        .results-section {
-            display: none;
-            margin-top: 30px;
-        }
-
-        .results-section.active {
-            display: block;
-        }
-
-        .image-preview-container {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            margin-bottom: 30px;
-        }
-
-        .image-wrapper {
-            flex: 1;
-            min-width: 300px;
-        }
-
-        .image-wrapper canvas {
-            width: 100%;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        }
-
-        .image-label {
-            text-align: center;
-            margin-top: 10px;
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
-
-        .stats-card {
-            background: var(--bg-tertiary);
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 20px;
-        }
-
-        .stats-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .stats-header h3 {
-            font-size: 1.2rem;
-        }
-
-        .coverage-badge {
-            background: linear-gradient(135deg, var(--accent), #2e7d32);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .stat-item:last-child {
-            border-bottom: none;
-        }
-
-        .stat-label {
-            color: var(--text-secondary);
-        }
-
-        .stat-value {
-            font-weight: 600;
-            color: var(--accent);
-        }
-
-        .progress-container {
-            margin: 25px 0;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 12px;
-            background: var(--bg-tertiary);
-            border-radius: 6px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent), #81c784);
-            border-radius: 6px;
-            transition: width 0.5s ease;
-        }
-
-        .controls {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            margin: 25px 0;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent), #2e7d32);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
-        }
-
-        .btn-secondary {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-        }
-
-        .btn-secondary:hover {
-            background: var(--border);
-        }
-
-        .btn-icon {
-            font-size: 1.1rem;
-        }
-
-        .info-section {
-            background: var(--bg-tertiary);
-            border-radius: 15px;
-            padding: 20px;
-            margin-top: 30px;
-        }
-
-        .info-section h3 {
-            font-size: 1.1rem;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-        }
-
-        .info-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-        }
-
-        .info-icon {
-            color: var(--accent);
-            font-size: 1.2rem;
-            margin-top: 2px;
-        }
-
-        .info-content p {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            line-height: 1.6;
-        }
-
-        .loading-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .loading-overlay.active {
-            display: flex;
-        }
-
-        .spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid var(--bg-secondary);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .error-message {
-            display: none;
-            background: rgba(244, 67, 54, 0.1);
-            border: 1px solid var(--error);
-            color: var(--error);
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-        }
-
-        .error-message.active {
-            display: block;
-        }
-
-        .toggle-options {
-            display: flex;
-            gap: 15px;
-            margin: 20px 0;
-            flex-wrap: wrap;
-        }
-
-        .toggle-btn {
-            padding: 8px 16px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.9rem;
-        }
-
-        .toggle-btn.active {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: white;
-        }
-
-        footer {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        footer a {
-            color: var(--accent);
-            text-decoration: none;
-        }
-
-        footer a:hover {
-            text-decoration: underline;
-        }
+        footer { text-align: center; padding: 40px 20px; color: var(--text-secondary); font-size: 0.9rem; }
+        footer a { color: var(--accent); text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
 
         @media (max-width: 768px) {
-            body {
-                padding: 15px;
-            }
-
-            header {
-                padding: 20px 15px;
-            }
-
-            .logo h1 {
-                font-size: 1.8rem;
-            }
-
-            .main-content {
-                padding: 20px;
-            }
-
-            .image-preview-container {
-                flex-direction: column;
-            }
-
-            .controls {
-                flex-direction: column;
-            }
-
-            .btn {
-                width: 100%;
-                justify-content: center;
-            }
+            body { padding: 15px; }
+            header { padding: 20px 15px; }
+            .logo h1 { font-size: 1.8rem; }
+            .main-content { padding: 20px; }
+            .image-preview-container { flex-direction: column; }
+            .controls { flex-direction: column; }
+            .btn { width: 100%; justify-content: center; }
+            .stats-header { flex-direction: column; align-items: flex-start; }
+            .comparison-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -451,15 +158,9 @@
             <div class="error-message" id="errorMessage"></div>
 
             <div class="toggle-options">
-                <button class="toggle-btn active" data-mode="green" id="greenMode">
-                    🌿 Green Detection
-                </button>
-                <button class="toggle-btn" data-mode="ndvi" id="ndviMode">
-                    📊 NDVI Simulation
-                </button>
-                <button class="toggle-btn" data-mode="edge" id="edgeMode">
-                    🎯 Edge Detection
-                </button>
+                <button class="toggle-btn active" data-mode="green" id="greenMode">🌿 Green Detection</button>
+                <button class="toggle-btn" data-mode="ndvi" id="ndviMode">📊 NDVI Simulation</button>
+                <button class="toggle-btn" data-mode="edge" id="edgeMode">🎯 Edge Detection</button>
             </div>
 
             <div class="results-section" id="resultsSection">
@@ -479,93 +180,57 @@
                         <h3>Plant Coverage Results</h3>
                         <div class="coverage-badge" id="coverageBadge">0%</div>
                     </div>
-                    
                     <div class="progress-container">
                         <div class="progress-bar">
                             <div class="progress-fill" id="progressFill" style="width: 0%"></div>
                         </div>
                     </div>
-
-                    <div class="stat-item">
-                        <span class="stat-label">Total Pixels:</span>
-                        <span class="stat-value" id="totalPixels">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Plant Pixels:</span>
-                        <span class="stat-value" id="plantPixels">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Non-Plant Pixels:</span>
-                        <span class="stat-value" id="nonPlantPixels">0</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Coverage Ratio:</span>
-                        <span class="stat-value" id="coverageRatio">0:1</span>
-                    </div>
+                    <div class="stat-item"><span class="stat-label">Total Pixels:</span><span class="stat-value" id="totalPixels">0</span></div>
+                    <div class="stat-item"><span class="stat-label">Plant Pixels:</span><span class="stat-value" id="plantPixels">0</span></div>
+                    <div class="stat-item"><span class="stat-label">Non-Plant Pixels:</span><span class="stat-value" id="nonPlantPixels">0</span></div>
+                    <div class="stat-item"><span class="stat-label">Coverage Ratio:</span><span class="stat-value" id="coverageRatio">0:1</span></div>
+                    <div class="stat-item"><span class="stat-label">Analysis Mode:</span><span class="stat-value" id="analysisMode">Green Detection</span></div>
+                    <div class="stat-item"><span class="stat-label">Timestamp:</span><span class="stat-value" id="analysisTimestamp">-</span></div>
                 </div>
 
                 <div class="controls">
-                    <button class="btn btn-primary" id="analyzeBtn">
-                        <span class="btn-icon">🔍</span>
-                        Analyze Image
-                    </button>
-                    <button class="btn btn-secondary" id="resetBtn">
-                        <span class="btn-icon">🔄</span>
-                        Reset
-                    </button>
-                    <button class="btn btn-secondary" id="downloadBtn">
-                        <span class="btn-icon">💾</span>
-                        Download Results
-                    </button>
+                    <button class="btn btn-primary" id="analyzeBtn"><span class="btn-icon">🔍</span> Analyze Image</button>
+                    <button class="btn btn-secondary" id="resetBtn"><span class="btn-icon">🔄</span> Reset</button>
+                    <button class="btn btn-secondary" id="downloadBtn"><span class="btn-icon">📊</span> Download Excel</button>
+                    <button class="btn btn-secondary" id="saveBtn"><span class="btn-icon">💾</span> Save Results</button>
+                </div>
+
+                <div class="comparison-section active" id="comparisonSection">
+                    <div class="comparison-header">
+                        <h3>📈 Previous Analyses</h3>
+                        <button class="comparison-toggle" id="toggleComparison">Hide</button>
+                    </div>
+                    <div class="comparison-grid" id="comparisonGrid">
+                        <div class="comparison-empty"><p>No previous analyses yet</p><p>Save your results to track progress over time</p></div>
+                    </div>
                 </div>
             </div>
 
             <div class="info-section">
                 <h3>ⓘ How It Works</h3>
                 <div class="info-grid">
-                    <div class="info-item">
-                        <div class="info-icon">📸</div>
-                        <div class="info-content">
-                            <p><strong>Upload an image</strong> of your field, garden, or any area with plants</p>
-                        </div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-icon">🤖</div>
-                        <div class="info-content">
-                            <p><strong>AI analysis</strong> detects green/plant areas using advanced algorithms</p>
-                        </div>
-                    </div>
-                    <div class="info-item">
-                        <div class="info-icon">📊</div>
-                        <div class="info-content">
-                            <p><strong>Get instant results</strong> showing plant coverage percentage and statistics</p>
-                        </div>
-                    </div>
+                    <div class="info-item"><div class="info-icon">📸</div><div class="info-content"><p><strong>Upload an image</strong> of your field, garden, or any area with plants</p></div></div>
+                    <div class="info-item"><div class="info-icon">🤖</div><div class="info-content"><p><strong>AI analysis</strong> detects green/plant areas using advanced algorithms</p></div></div>
+                    <div class="info-item"><div class="info-icon">📊</div><div class="info-content"><p><strong>Get instant results</strong> showing plant coverage percentage and statistics</p></div></div>
+                    <div class="info-item"><div class="info-icon">📈</div><div class="info-content"><p><strong>Compare over time</strong> by saving and reviewing previous analyses</p></div></div>
                 </div>
             </div>
         </main>
-
-        <footer>
-            <p>Built with ✨ AI Powered Plant Analysis | <a href="#">Learn More</a></p>
-        </footer>
+        <footer><p>Built with ✨ AI Powered Plant Analysis</p></footer>
     </div>
-
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner"></div>
-    </div>
+    <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
 
     <script>
-        // Main application state
         const state = {
-            originalImage: null,
-            processedImage: null,
-            coveragePercentage: 0,
-            totalPixels: 0,
-            plantPixels: 0,
-            analysisMode: 'green' // 'green', 'ndvi', 'edge'
+            originalImage: null, coveragePercentage: 0, totalPixels: 0, plantPixels: 0,
+            analysisMode: 'green', currentResult: null, previousResults: []
         };
 
-        // DOM elements
         const uploadSection = document.getElementById('uploadSection');
         const fileInput = document.getElementById('fileInput');
         const resultsSection = document.getElementById('resultsSection');
@@ -574,456 +239,276 @@
         const analyzeBtn = document.getElementById('analyzeBtn');
         const resetBtn = document.getElementById('resetBtn');
         const downloadBtn = document.getElementById('downloadBtn');
+        const saveBtn = document.getElementById('saveBtn');
         const coverageBadge = document.getElementById('coverageBadge');
         const progressFill = document.getElementById('progressFill');
         const totalPixelsEl = document.getElementById('totalPixels');
         const plantPixelsEl = document.getElementById('plantPixels');
         const nonPlantPixelsEl = document.getElementById('nonPlantPixels');
         const coverageRatioEl = document.getElementById('coverageRatio');
+        const analysisModeEl = document.getElementById('analysisMode');
+        const analysisTimestampEl = document.getElementById('analysisTimestamp');
         const errorMessage = document.getElementById('errorMessage');
         const loadingOverlay = document.getElementById('loadingOverlay');
         const greenMode = document.getElementById('greenMode');
         const ndviMode = document.getElementById('ndviMode');
         const edgeMode = document.getElementById('edgeMode');
-
-        // Mode toggle buttons
+        const comparisonSection = document.getElementById('comparisonSection');
+        const comparisonGrid = document.getElementById('comparisonGrid');
+        const toggleComparison = document.getElementById('toggleComparison');
         const modeButtons = [greenMode, ndviMode, edgeMode];
 
-        // Initialize event listeners
         function initEventListeners() {
-            // File input change
             fileInput.addEventListener('change', handleFileUpload);
-
-            // Drag and drop
             uploadSection.addEventListener('dragover', handleDragOver);
             uploadSection.addEventListener('dragleave', handleDragLeave);
             uploadSection.addEventListener('drop', handleDrop);
-
-            // Click to trigger file input
             uploadSection.addEventListener('click', () => fileInput.click());
-
-            // Analyze button
             analyzeBtn.addEventListener('click', analyzeImage);
-
-            // Reset button
             resetBtn.addEventListener('click', resetApp);
-
-            // Download button
-            downloadBtn.addEventListener('click', downloadResults);
-
-            // Mode toggles
-            modeButtons.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    modeButtons.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    state.analysisMode = btn.dataset.mode;
-                });
-            });
+            downloadBtn.addEventListener('click', downloadExcel);
+            saveBtn.addEventListener('click', saveResult);
+            modeButtons.forEach(btn => btn.addEventListener('click', () => {
+                modeButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.analysisMode = btn.dataset.mode;
+                analysisModeEl.textContent = btn.textContent.trim();
+            }));
+            toggleComparison.addEventListener('click', toggleComparisonSection);
+            loadPreviousResults();
         }
 
-        // Handle file upload
+        function toggleComparisonSection() {
+            comparisonSection.classList.toggle('active');
+            toggleComparison.textContent = comparisonSection.classList.contains('active') ? 'Hide' : 'Show';
+        }
+
         function handleFileUpload(event) {
             const file = event.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                processImage(file);
-            } else {
-                showError('Please upload a valid image file');
-            }
+            if (file && file.type.startsWith('image/')) processImage(file);
+            else showError('Please upload a valid image file');
         }
 
-        // Drag over handler
-        function handleDragOver(event) {
-            event.preventDefault();
-            event.stopPropagation();
-            uploadSection.classList.add('drag-over');
-        }
-
-        // Drag leave handler
-        function handleDragLeave(event) {
-            event.preventDefault();
-            event.stopPropagation();
-            uploadSection.classList.remove('drag-over');
-        }
-
-        // Drop handler
+        function handleDragOver(event) { event.preventDefault(); event.stopPropagation(); uploadSection.classList.add('drag-over'); }
+        function handleDragLeave(event) { event.preventDefault(); event.stopPropagation(); uploadSection.classList.remove('drag-over'); }
         function handleDrop(event) {
-            event.preventDefault();
-            event.stopPropagation();
-            uploadSection.classList.remove('drag-over');
-            
+            event.preventDefault(); event.stopPropagation(); uploadSection.classList.remove('drag-over');
             const files = event.dataTransfer.files;
-            if (files && files.length > 0) {
-                const file = files[0];
-                if (file.type.startsWith('image/')) {
-                    processImage(file);
-                } else {
-                    showError('Please drop a valid image file');
-                }
-            }
+            if (files && files.length > 0 && files[0].type.startsWith('image/')) processImage(files[0]);
+            else showError('Please drop a valid image file');
         }
 
-        // Process uploaded image
         function processImage(file) {
-            errorMessage.classList.remove('active');
-            
+            errorMessage.classList.remove('active', 'success');
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
-                img.onload = function() {
-                    state.originalImage = img;
-                    drawOriginalImage();
-                    uploadSection.style.display = 'none';
-                    resultsSection.classList.add('active');
-                };
-                img.onerror = function() {
-                    showError('Error loading image');
-                };
+                img.onload = () => { state.originalImage = img; drawOriginalImage(); uploadSection.style.display = 'none'; resultsSection.classList.add('active'); };
+                img.onerror = () => showError('Error loading image');
                 img.src = e.target.result;
             };
-            reader.onerror = function() {
-                showError('Error reading file');
-            };
+            reader.onerror = () => showError('Error reading file');
             reader.readAsDataURL(file);
         }
 
-        // Draw original image on canvas
         function drawOriginalImage() {
             if (!state.originalImage) return;
-
             const ctx = originalCanvas.getContext('2d');
-            
-            // Set canvas dimensions to match image, with max width/height
-            const maxWidth = 600;
-            const maxHeight = 600;
-            const ratio = Math.min(
-                maxWidth / state.originalImage.width,
-                maxHeight / state.originalImage.height
-            );
-            
+            const maxWidth = 600, maxHeight = 600;
+            const ratio = Math.min(maxWidth / state.originalImage.width, maxHeight / state.originalImage.height);
             originalCanvas.width = state.originalImage.width * ratio;
             originalCanvas.height = state.originalImage.height * ratio;
-            
-            ctx.drawImage(
-                state.originalImage,
-                0, 0, 
-                state.originalImage.width, 
-                state.originalImage.height,
-                0, 0,
-                originalCanvas.width,
-                originalCanvas.height
-            );
-            
-            // Also initialize processed canvas
-            processedCanvas.width = originalCanvas.width;
-            processedCanvas.height = originalCanvas.height;
+            ctx.drawImage(state.originalImage, 0, 0, state.originalImage.width, state.originalImage.height, 0, 0, originalCanvas.width, originalCanvas.height);
+            processedCanvas.width = originalCanvas.width; processedCanvas.height = originalCanvas.height;
         }
 
-        // Analyze the image
         function analyzeImage() {
-            if (!state.originalImage) {
-                showError('Please upload an image first');
-                return;
-            }
-
+            if (!state.originalImage) { showError('Please upload an image first'); return; }
             showLoading();
-            
-            // Use setTimeout to allow UI to update
             setTimeout(() => {
-                try {
-                    const analysis = performAnalysis();
-                    displayResults(analysis);
-                    hideLoading();
-                } catch (error) {
-                    hideLoading();
-                    showError('Analysis failed: ' + error.message);
-                }
+                try { const analysis = performAnalysis(); displayResults(analysis); hideLoading(); }
+                catch (error) { hideLoading(); showError('Analysis failed: ' + error.message); }
             }, 100);
         }
 
-        // Perform the actual analysis
         function performAnalysis() {
             const ctx = originalCanvas.getContext('2d');
-            const width = originalCanvas.width;
-            const height = originalCanvas.height;
-            
-            // Get image data
+            const width = originalCanvas.width, height = originalCanvas.height;
             const imageData = ctx.getImageData(0, 0, width, height);
             const data = imageData.data;
-            
-            state.totalPixels = width * height;
-            state.plantPixels = 0;
-            
-            // Create a new ImageData for processed image
+            state.totalPixels = width * height; state.plantPixels = 0;
             const processedData = ctx.createImageData(width, height);
             const processed = processedData.data;
-            
-            // Analyze based on selected mode
             switch (state.analysisMode) {
-                case 'green':
-                    analyzeGreen(data, processed, width, height);
-                    break;
-                case 'ndvi':
-                    analyzeNDVI(data, processed, width, height);
-                    break;
-                case 'edge':
-                    analyzeEdges(data, processed, width, height);
-                    break;
-                default:
-                    analyzeGreen(data, processed, width, height);
+                case 'green': analyzeGreen(data, processed, width, height); break;
+                case 'ndvi': analyzeNDVI(data, processed, width, height); break;
+                case 'edge': analyzeEdges(data, processed, width, height); break;
+                default: analyzeGreen(data, processed, width, height);
             }
-            
-            // Draw processed image
             const processedCtx = processedCanvas.getContext('2d');
             processedCtx.putImageData(processedData, 0, 0);
-            
-            // Calculate percentage
             state.coveragePercentage = Math.round((state.plantPixels / state.totalPixels) * 10000) / 100;
-            
-            return {
-                totalPixels: state.totalPixels,
-                plantPixels: state.plantPixels,
-                nonPlantPixels: state.totalPixels - state.plantPixels,
-                coveragePercentage: state.coveragePercentage,
-                ratio: `${Math.round(state.plantPixels / 1000)}:${Math.round((state.totalPixels - state.plantPixels) / 1000)}`
+            state.currentResult = {
+                timestamp: new Date().toISOString(), coveragePercentage: state.coveragePercentage,
+                totalPixels: state.totalPixels, plantPixels: state.plantPixels,
+                nonPlantPixels: state.totalPixels - state.plantPixels, analysisMode: state.analysisMode,
+                imageName: 'image_' + Date.now()
             };
+            return state.currentResult;
         }
 
-        // Green detection analysis
         function analyzeGreen(data, processed, width, height) {
             for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-                
-                // Simple green detection: high green, lower red and blue
-                // This is a basic approach - in a real app, you'd use a trained ML model
+                const r = data[i], g = data[i + 1], b = data[i + 2];
                 const isGreen = g > 100 && g > r * 1.2 && g > b * 1.2 && r < 200 && b < 200;
-                
-                if (isGreen) {
-                    state.plantPixels++;
-                    // Highlight plant pixels in green
-                    processed[i] = 0;     // R
-                    processed[i + 1] = 255; // G
-                    processed[i + 2] = 0;  // B
-                    processed[i + 3] = 255; // Alpha
-                } else {
-                    // Non-plant pixels in grayscale
-                    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-                    processed[i] = gray;
-                    processed[i + 1] = gray;
-                    processed[i + 2] = gray;
-                    processed[i + 3] = 255;
-                }
+                if (isGreen) { state.plantPixels++; processed[i] = 0; processed[i + 1] = 255; processed[i + 2] = 0; processed[i + 3] = 255; }
+                else { const gray = 0.299 * r + 0.587 * g + 0.114 * b; processed[i] = gray; processed[i + 1] = gray; processed[i + 2] = gray; processed[i + 3] = 255; }
             }
         }
 
-        // NDVI-like simulation (Normalized Difference Vegetation Index)
         function analyzeNDVI(data, processed, width, height) {
             for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-                
-                // Simulate NDVI: (NIR - Red) / (NIR + Red)
-                // Since we don't have NIR band, we'll use green as a proxy for vegetation
-                // and red as the non-vegetation indicator
-                // This is a simulation, real NDVI requires near-infrared data
-                const nirProxy = g; // Using green as a proxy for NIR
-                const red = r;
-                
-                const ndvi = (nirProxy - red) / (nirProxy + red + 0.0001);
-                
-                // NDVI ranges from -1 to 1, vegetation typically > 0.2
+                const r = data[i], g = data[i + 1], b = data[i + 2];
+                const ndvi = (g - r) / (g + r + 0.0001);
                 const isVegetation = ndvi > 0.2;
-                
-                if (isVegetation) {
-                    state.plantPixels++;
-                    // Color based on NDVI value (healthier = more green)
-                    const intensity = Math.min(255, (ndvi + 1) * 127.5);
-                    processed[i] = 0;
-                    processed[i + 1] = intensity * 2;
-                    processed[i + 2] = 0;
-                    processed[i + 3] = 255;
-                } else {
-                    // Non-vegetation in grayscale
-                    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-                    processed[i] = gray;
-                    processed[i + 1] = gray;
-                    processed[i + 2] = gray;
-                    processed[i + 3] = 255;
-                }
+                if (isVegetation) { state.plantPixels++; const intensity = Math.min(255, (ndvi + 1) * 127.5); processed[i] = 0; processed[i + 1] = intensity * 2; processed[i + 2] = 0; processed[i + 3] = 255; }
+                else { const gray = 0.299 * r + 0.587 * g + 0.114 * b; processed[i] = gray; processed[i + 1] = gray; processed[i + 2] = gray; processed[i + 3] = 255; }
             }
         }
 
-        // Edge detection (Sobel-like)
         function analyzeEdges(data, processed, width, height) {
-            // First, create a grayscale version
             const gray = new Array(width * height);
-            for (let y = 0; y < height; y++) {
-                for (let x = 0; x < width; x++) {
-                    const idx = (y * width + x) * 4;
-                    gray[y * width + x] = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
-                }
-            }
-            
-            // Sobel edge detection
-            for (let y = 1; y < height - 1; y++) {
-                for (let x = 1; x < width - 1; x++) {
-                    const idx = (y * width + x) * 4;
-                    
-                    // Sobel kernels
-                    const gx = (
-                        -1 * gray[(y-1) * width + (x-1)] + 
-                        -2 * gray[(y-1) * width + x] + 
-                        -1 * gray[(y-1) * width + (x+1)] + 
-                        1 * gray[(y+1) * width + (x-1)] + 
-                        2 * gray[(y+1) * width + x] + 
-                        1 * gray[(y+1) * width + (x+1)]
-                    );
-                    
-                    const gy = (
-                        -1 * gray[(y-1) * width + (x-1)] + 
-                        -2 * gray[y * width + (x-1)] + 
-                        -1 * gray[(y+1) * width + (x-1)] + 
-                        1 * gray[(y-1) * width + (x+1)] + 
-                        2 * gray[y * width + (x+1)] + 
-                        1 * gray[(y+1) * width + (x+1)]
-                    );
-                    
-                    const magnitude = Math.min(255, Math.sqrt(gx * gx + gy * gy));
-                    
-                    // For edge detection mode, we consider edges as potential plant boundaries
-                    // This is less accurate for coverage but shows the technique
-                    const isEdge = magnitude > 40;
-                    
-                    // Also check if the area is green
-                    const r = data[idx];
-                    const g = data[idx + 1];
-                    const b = data[idx + 2];
-                    const isGreen = g > 100 && g > r * 1.2 && g > b * 1.2;
-                    
-                    if (isEdge || isGreen) {
-                        state.plantPixels++;
-                        processed[idx] = 0;
-                        processed[idx + 1] = magnitude;
-                        processed[idx + 2] = 0;
-                        processed[idx + 3] = 255;
-                    } else {
-                        processed[idx] = magnitude;
-                        processed[idx + 1] = magnitude;
-                        processed[idx + 2] = magnitude;
-                        processed[idx + 3] = 255;
-                    }
-                }
+            for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) gray[y * width + x] = 0.299 * data[(y * width + x) * 4] + 0.587 * data[(y * width + x) * 4 + 1] + 0.114 * data[(y * width + x) * 4 + 2];
+            for (let y = 1; y < height - 1; y++) for (let x = 1; x < width - 1; x++) {
+                const idx = (y * width + x) * 4;
+                const gx = -1 * gray[(y-1) * width + (x-1)] -2 * gray[(y-1) * width + x] -1 * gray[(y-1) * width + (x+1)] +1 * gray[(y+1) * width + (x-1)] +2 * gray[(y+1) * width + x] +1 * gray[(y+1) * width + (x+1)];
+                const gy = -1 * gray[(y-1) * width + (x-1)] -2 * gray[y * width + (x-1)] -1 * gray[(y+1) * width + (x-1)] +1 * gray[(y-1) * width + (x+1)] +2 * gray[y * width + (x+1)] +1 * gray[(y+1) * width + (x+1)];
+                const magnitude = Math.min(255, Math.sqrt(gx * gx + gy * gy));
+                const isEdge = magnitude > 40;
+                const r2 = data[idx], g2 = data[idx + 1], b2 = data[idx + 2];
+                const isGreen = g2 > 100 && g2 > r2 * 1.2 && g2 > b2 * 1.2;
+                if (isEdge || isGreen) { state.plantPixels++; processed[idx] = 0; processed[idx + 1] = magnitude; processed[idx + 2] = 0; processed[idx + 3] = 255; }
+                else { processed[idx] = magnitude; processed[idx + 1] = magnitude; processed[idx + 2] = magnitude; processed[idx + 3] = 255; }
             }
         }
 
-        // Display results
         function displayResults(analysis) {
-            coverageBadge.textContent = `${analysis.coveragePercentage}%`;
-            progressFill.style.width = `${analysis.coveragePercentage}%`;
-            
+            coverageBadge.textContent = analysis.coveragePercentage + '%';
+            progressFill.style.width = analysis.coveragePercentage + '%';
             totalPixelsEl.textContent = analysis.totalPixels.toLocaleString();
             plantPixelsEl.textContent = analysis.plantPixels.toLocaleString();
             nonPlantPixelsEl.textContent = analysis.nonPlantPixels.toLocaleString();
-            coverageRatioEl.textContent = analysis.ratio;
-            
-            // Change progress bar color based on coverage
-            if (analysis.coveragePercentage > 50) {
-                progressFill.style.background = 'linear-gradient(90deg, #4caf50, #81c784)';
-            } else if (analysis.coveragePercentage > 25) {
-                progressFill.style.background = 'linear-gradient(90deg, #ff9800, #ffb74d)';
-            } else {
-                progressFill.style.background = 'linear-gradient(90deg, #f44336, #e57373)';
-            }
+            coverageRatioEl.textContent = analysis.plantPixels > 0 ? (analysis.plantPixels / analysis.nonPlantPixels).toFixed(2) + ':1' : '0:1';
+            analysisTimestampEl.textContent = new Date(analysis.timestamp).toLocaleString();
+            if (analysis.coveragePercentage > 50) progressFill.style.background = 'linear-gradient(90deg, #4caf50, #81c784)';
+            else if (analysis.coveragePercentage > 25) progressFill.style.background = 'linear-gradient(90deg, #ff9800, #ffb74d)';
+            else progressFill.style.background = 'linear-gradient(90deg, #f44336, #e57373)';
         }
 
-        // Reset the app
-        function resetApp() {
-            state.originalImage = null;
-            state.processedImage = null;
-            state.coveragePercentage = 0;
-            state.totalPixels = 0;
-            state.plantPixels = 0;
-            
-            uploadSection.style.display = '';
-            resultsSection.classList.remove('active');
-            errorMessage.classList.remove('active');
-            
-            const ctx1 = originalCanvas.getContext('2d');
-            const ctx2 = processedCanvas.getContext('2d');
-            ctx1.clearRect(0, 0, originalCanvas.width, originalCanvas.height);
-            ctx2.clearRect(0, 0, processedCanvas.width, processedCanvas.height);
-            
-            coverageBadge.textContent = '0%';
-            progressFill.style.width = '0%';
-            totalPixelsEl.textContent = '0';
-            plantPixelsEl.textContent = '0';
-            nonPlantPixelsEl.textContent = '0';
-            coverageRatioEl.textContent = '0:1';
-            progressFill.style.background = 'linear-gradient(90deg, var(--accent), #81c784)';
+        function saveResult() {
+            if (!state.currentResult) { showError('No analysis results to save'); return; }
+            state.previousResults.unshift({...state.currentResult});
+            if (state.previousResults.length > 10) state.previousResults.pop();
+            localStorage.setItem('coverscope_results', JSON.stringify(state.previousResults));
+            renderComparisonGrid();
+            showError('Results saved!', 'success');
         }
 
-        // Download results as JSON
-        function downloadResults() {
-            if (!state.originalImage) {
-                showError('No analysis results to download');
+        function loadPreviousResults() {
+            const saved = localStorage.getItem('coverscope_results');
+            if (saved) { state.previousResults = JSON.parse(saved); renderComparisonGrid(); }
+        }
+
+        function renderComparisonGrid() {
+            if (state.previousResults.length === 0) {
+                comparisonGrid.innerHTML = '<div class="comparison-empty"><p>No previous analyses yet</p><p>Save your results to track progress over time</p></div>';
                 return;
             }
-            
-            const data = {
-                timestamp: new Date().toISOString(),
-                analysis: {
-                    coveragePercentage: state.coveragePercentage,
-                    totalPixels: state.totalPixels,
-                    plantPixels: state.plantPixels,
-                    nonPlantPixels: state.totalPixels - state.plantPixels,
-                    coverageRatio: `${state.plantPixels}:${state.totalPixels - state.plantPixels}`,
-                    analysisMode: state.analysisMode
-                },
-                metadata: {
-                    imageWidth: state.originalImage.width,
-                    imageHeight: state.originalImage.height,
-                    app: 'CoverScope',
-                    version: '1.0.0'
-                }
-            };
-            
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `coverscope-results-${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            comparisonGrid.innerHTML = state.previousResults.map((result, index) => {
+                const date = new Date(result.timestamp);
+                const diff = state.currentResult ? (state.currentResult.coveragePercentage - result.coveragePercentage).toFixed(1) : 0;
+                return '<div class="comparison-card"><div class="comparison-card-header"><div><div class="comparison-card-badge">' + result.coveragePercentage + '%</div><div class="comparison-card-title">Analysis #' + (index + 1) + '</div></div><div class="comparison-card-date">' + date.toLocaleDateString() + '<br>' + date.toLocaleTimeString() + '</div></div>' +
+                    '<div class="comparison-card-stat"><span class="comparison-card-stat-label">Mode:</span><span class="comparison-card-stat-value">' + result.analysisMode + '</span></div>' +
+                    '<div class="comparison-card-stat"><span class="comparison-card-stat-label">Plant Pixels:</span><span class="comparison-card-stat-value">' + result.plantPixels.toLocaleString() + '</span></div>' +
+                    '<div class="comparison-card-stat"><span class="comparison-card-stat-label">Coverage:</span><span class="comparison-card-stat-value">' + result.coveragePercentage + '%</span></div>' +
+                    (diff ? '<div class="comparison-card-stat"><span class="comparison-card-stat-label">vs Current:</span><span class="comparison-card-stat-value" style="color: ' + (diff > 0 ? 'var(--accent)' : 'var(--error)') + '">' + (diff > 0 ? '+' : '') + diff + '%</span></div>' : '') +
+                    '<div style="display: flex; justify-content: flex-end; margin-top: 10px;"><button class="delete-btn" onclick="deleteResult(' + index + ')">Delete</button></div></div>';
+            }).join('');
         }
 
-        // Show error message
-        function showError(message) {
+        function deleteResult(index) {
+            state.previousResults.splice(index, 1);
+            localStorage.setItem('coverscope_results', JSON.stringify(state.previousResults));
+            renderComparisonGrid();
+        }
+
+        function downloadExcel() {
+            if (!state.currentResult) { showError('No analysis results to download'); return; }
+            const wb = XLSX.utils.book_new();
+            const currentData = [
+                ['CoverScope Analysis Results', ''],
+                ['Timestamp', state.currentResult.timestamp],
+                ['Analysis Mode', state.currentResult.analysisMode],
+                ['', ''],
+                ['Results', ''],
+                ['Coverage Percentage', state.currentResult.coveragePercentage + '%'],
+                ['Total Pixels', state.currentResult.totalPixels],
+                ['Plant Pixels', state.currentResult.plantPixels],
+                ['Non-Plant Pixels', state.currentResult.nonPlantPixels],
+                ['', ''],
+                ['Image Info', ''],
+                ['Width', state.originalImage?.width || 0],
+                ['Height', state.originalImage?.height || 0]
+            ];
+            const currentWs = XLSX.utils.aoa_to_sheet(currentData);
+            XLSX.utils.book_append_sheet(wb, currentWs, 'Current Analysis');
+            if (state.previousResults.length > 0) {
+                const comparisonData = [['Previous Analyses', ''], ['#', 'Timestamp', 'Mode', 'Coverage %', 'Plant Pixels', 'Change from Current']];
+                state.previousResults.forEach((result, index) => {
+                    const date = new Date(result.timestamp);
+                    const diff = state.currentResult ? (state.currentResult.coveragePercentage - result.coveragePercentage).toFixed(1) : 0;
+                    comparisonData.push([index + 1, date.toLocaleString(), result.analysisMode, result.coveragePercentage + '%', result.plantPixels, (diff > 0 ? '+' : '') + diff + '%']);
+                });
+                const comparisonWs = XLSX.utils.aoa_to_sheet(comparisonData);
+                XLSX.utils.book_append_sheet(wb, comparisonWs, 'Comparison History');
+            }
+            XLSX.writeFile(wb, 'CoverScope-Results-' + new Date().toISOString().split('T')[0] + '.xlsx');
+        }
+
+        function resetApp() {
+            state.originalImage = null; state.processedImage = null; state.coveragePercentage = 0;
+            state.totalPixels = 0; state.plantPixels = 0; state.currentResult = null;
+            uploadSection.style.display = ''; resultsSection.classList.remove('active');
+            errorMessage.classList.remove('active', 'success');
+            const ctx1 = originalCanvas.getContext('2d'), ctx2 = processedCanvas.getContext('2d');
+            ctx1.clearRect(0, 0, originalCanvas.width, originalCanvas.height);
+            ctx2.clearRect(0, 0, processedCanvas.width, processedCanvas.height);
+            coverageBadge.textContent = '0%'; progressFill.style.width = '0%';
+            progressFill.style.background = 'linear-gradient(90deg, var(--accent), #81c784)';
+            totalPixelsEl.textContent = '0'; plantPixelsEl.textContent = '0';
+            nonPlantPixelsEl.textContent = '0'; coverageRatioEl.textContent = '0:1';
+            analysisModeEl.textContent = 'Green Detection'; analysisTimestampEl.textContent = '-';
+        }
+
+        function showError(message, type = 'error') {
             errorMessage.textContent = message;
-            errorMessage.classList.add('active');
+            errorMessage.className = 'error-message active';
+            if (type === 'success') {
+                errorMessage.style.background = 'rgba(76, 175, 80, 0.1)';
+                errorMessage.style.border = '1px solid var(--accent)';
+                errorMessage.style.color = 'var(--accent)';
+                setTimeout(() => errorMessage.classList.remove('active'), 3000);
+            } else {
+                errorMessage.style.background = 'rgba(244, 67, 54, 0.1)';
+                errorMessage.style.border = '1px solid var(--error)';
+                errorMessage.style.color = 'var(--error)';
+            }
             hideLoading();
         }
 
-        // Show loading overlay
-        function showLoading() {
-            loadingOverlay.classList.add('active');
-        }
-
-        // Hide loading overlay
-        function hideLoading() {
-            loadingOverlay.classList.remove('active');
-        }
-
-        // Initialize the app
-        function init() {
-            initEventListeners();
-            console.log('CoverScope initialized');
-        }
-
-        // Start the app
+        function showLoading() { loadingOverlay.classList.add('active'); }
+        function hideLoading() { loadingOverlay.classList.remove('active'); }
+        function init() { initEventListeners(); console.log('CoverScope initialized'); }
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
