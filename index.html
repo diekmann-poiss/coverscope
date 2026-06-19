@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoverScope - AI Plant Coverage Measurement</title>
+    <meta name="description" content="Measure plant coverage with precise AI accuracy">
+    <meta name="theme-color" content="#1a1e1f">
+    <style>
+        :root {
+            --bg-primary: #1a1e1f;
+            --bg-secondary: #2a2e2f;
+            --bg-tertiary: #3a3e3f;
+            --text-primary: #e8eaef;
+            --text-secondary: #a8a8a8;
+            --accent: #4caf50;
+            --accent-hover: #388e3c;
+            --border: #444;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --error: #f44336;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--accent), #2e7d32);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .logo h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), #81c784);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tagline {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .main-content {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            margin-top: 30px;
+        }
+
+        .upload-section {
+            border: 2px dashed var(--border);
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--bg-tertiary);
+            margin-bottom: 30px;
+        }
+
+        .upload-section:hover {
+            border-color: var(--accent);
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .upload-section.drag-over {
+            border-color: var(--accent);
+            background: rgba(76, 175, 80, 0.2);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        .upload-text h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .upload-text p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .results-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .image-preview-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .image-wrapper {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .image-wrapper canvas {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .image-label {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .stats-card {
+            background: var(--bg-tertiary);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .stats-header h3 {
+            font-size: 1.2rem;
+        }
+
+        .coverage-badge {
+            background: linear-gradient(135deg, var(--accent), #2e7d32);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .progress-container {
+            margin: 25px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #81c784);
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #2e7d32);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .btn-icon {
+            font-size: 1.1rem;
+        }
+
+        .info-section {
+            background: var(--bg-tertiary);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .info-section h3 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .info-icon {
+            color: var(--accent);
+            font-size: 1.2rem;
+            margin-top: 2px;
+        }
+
+        .info-content p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--bg-secondary);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            display: none;
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .error-message.active {
+            display: block;
+        }
+
+        .toggle-options {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .toggle-btn {
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+
+            header {
+                padding: 20px 15px;
+            }
+
+            .logo h1 {
+                font-size: 1.8rem;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .image-preview-container {
+                flex-direction: column;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">🌱</div>
+                <h1>CoverScope</h1>
+            </div>
+            <p class="tagline">Measure plant coverage with precise AI accuracy</p>
+        </header>
+
+        <main class="main-content">
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">
+                    <h3>Upload or Drop an Image</h3>
+                    <p>Drag and drop an image here, or click to browse</p>
+                </div>
+                <input type="file" id="fileInput" class="file-input" accept="image/*" />
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+
+            <div class="toggle-options">
+                <button class="toggle-btn active" data-mode="green" id="greenMode">
+                    🌿 Green Detection
+                </button>
+                <button class="toggle-btn" data-mode="ndvi" id="ndviMode">
+                    📊 NDVI Simulation
+                </button>
+                <button class="toggle-btn" data-mode="edge" id="edgeMode">
+                    🎯 Edge Detection
+                </button>
+            </div>
+
+            <div class="results-section" id="resultsSection">
+                <div class="image-preview-container">
+                    <div class="image-wrapper">
+                        <canvas id="originalCanvas"></canvas>
+                        <div class="image-label">Original Image</div>
+                    </div>
+                    <div class="image-wrapper">
+                        <canvas id="processedCanvas"></canvas>
+                        <div class="image-label">Processed (Plant Detection)</div>
+                    </div>
+                </div>
+
+                <div class="stats-card">
+                    <div class="stats-header">
+                        <h3>Plant Coverage Results</h3>
+                        <div class="coverage-badge" id="coverageBadge">0%</div>
+                    </div>
+                    
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="stat-item">
+                        <span class="stat-label">Total Pixels:</span>
+                        <span class="stat-value" id="totalPixels">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Plant Pixels:</span>
+                        <span class="stat-value" id="plantPixels">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Non-Plant Pixels:</span>
+                        <span class="stat-value" id="nonPlantPixels">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Coverage Ratio:</span>
+                        <span class="stat-value" id="coverageRatio">0:1</span>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-primary" id="analyzeBtn">
+                        <span class="btn-icon">🔍</span>
+                        Analyze Image
+                    </button>
+                    <button class="btn btn-secondary" id="resetBtn">
+                        <span class="btn-icon">🔄</span>
+                        Reset
+                    </button>
+                    <button class="btn btn-secondary" id="downloadBtn">
+                        <span class="btn-icon">💾</span>
+                        Download Results
+                    </button>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h3>ⓘ How It Works</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-icon">📸</div>
+                        <div class="info-content">
+                            <p><strong>Upload an image</strong> of your field, garden, or any area with plants</p>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-icon">🤖</div>
+                        <div class="info-content">
+                            <p><strong>AI analysis</strong> detects green/plant areas using advanced algorithms</p>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-icon">📊</div>
+                        <div class="info-content">
+                            <p><strong>Get instant results</strong> showing plant coverage percentage and statistics</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Built with ✨ AI Powered Plant Analysis | <a href="#">Learn More</a></p>
+        </footer>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <script>
+        // Main application state
+        const state = {
+            originalImage: null,
+            processedImage: null,
+            coveragePercentage: 0,
+            totalPixels: 0,
+            plantPixels: 0,
+            analysisMode: 'green' // 'green', 'ndvi', 'edge'
+        };
+
+        // DOM elements
+        const uploadSection = document.getElementById('uploadSection');
+        const fileInput = document.getElementById('fileInput');
+        const resultsSection = document.getElementById('resultsSection');
+        const originalCanvas = document.getElementById('originalCanvas');
+        const processedCanvas = document.getElementById('processedCanvas');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const coverageBadge = document.getElementById('coverageBadge');
+        const progressFill = document.getElementById('progressFill');
+        const totalPixelsEl = document.getElementById('totalPixels');
+        const plantPixelsEl = document.getElementById('plantPixels');
+        const nonPlantPixelsEl = document.getElementById('nonPlantPixels');
+        const coverageRatioEl = document.getElementById('coverageRatio');
+        const errorMessage = document.getElementById('errorMessage');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const greenMode = document.getElementById('greenMode');
+        const ndviMode = document.getElementById('ndviMode');
+        const edgeMode = document.getElementById('edgeMode');
+
+        // Mode toggle buttons
+        const modeButtons = [greenMode, ndviMode, edgeMode];
+
+        // Initialize event listeners
+        function initEventListeners() {
+            // File input change
+            fileInput.addEventListener('change', handleFileUpload);
+
+            // Drag and drop
+            uploadSection.addEventListener('dragover', handleDragOver);
+            uploadSection.addEventListener('dragleave', handleDragLeave);
+            uploadSection.addEventListener('drop', handleDrop);
+
+            // Click to trigger file input
+            uploadSection.addEventListener('click', () => fileInput.click());
+
+            // Analyze button
+            analyzeBtn.addEventListener('click', analyzeImage);
+
+            // Reset button
+            resetBtn.addEventListener('click', resetApp);
+
+            // Download button
+            downloadBtn.addEventListener('click', downloadResults);
+
+            // Mode toggles
+            modeButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    modeButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    state.analysisMode = btn.dataset.mode;
+                });
+            });
+        }
+
+        // Handle file upload
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                processImage(file);
+            } else {
+                showError('Please upload a valid image file');
+            }
+        }
+
+        // Drag over handler
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            uploadSection.classList.add('drag-over');
+        }
+
+        // Drag leave handler
+        function handleDragLeave(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            uploadSection.classList.remove('drag-over');
+        }
+
+        // Drop handler
+        function handleDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            uploadSection.classList.remove('drag-over');
+            
+            const files = event.dataTransfer.files;
+            if (files && files.length > 0) {
+                const file = files[0];
+                if (file.type.startsWith('image/')) {
+                    processImage(file);
+                } else {
+                    showError('Please drop a valid image file');
+                }
+            }
+        }
+
+        // Process uploaded image
+        function processImage(file) {
+            errorMessage.classList.remove('active');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    state.originalImage = img;
+                    drawOriginalImage();
+                    uploadSection.style.display = 'none';
+                    resultsSection.classList.add('active');
+                };
+                img.onerror = function() {
+                    showError('Error loading image');
+                };
+                img.src = e.target.result;
+            };
+            reader.onerror = function() {
+                showError('Error reading file');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Draw original image on canvas
+        function drawOriginalImage() {
+            if (!state.originalImage) return;
+
+            const ctx = originalCanvas.getContext('2d');
+            
+            // Set canvas dimensions to match image, with max width/height
+            const maxWidth = 600;
+            const maxHeight = 600;
+            const ratio = Math.min(
+                maxWidth / state.originalImage.width,
+                maxHeight / state.originalImage.height
+            );
+            
+            originalCanvas.width = state.originalImage.width * ratio;
+            originalCanvas.height = state.originalImage.height * ratio;
+            
+            ctx.drawImage(
+                state.originalImage,
+                0, 0, 
+                state.originalImage.width, 
+                state.originalImage.height,
+                0, 0,
+                originalCanvas.width,
+                originalCanvas.height
+            );
+            
+            // Also initialize processed canvas
+            processedCanvas.width = originalCanvas.width;
+            processedCanvas.height = originalCanvas.height;
+        }
+
+        // Analyze the image
+        function analyzeImage() {
+            if (!state.originalImage) {
+                showError('Please upload an image first');
+                return;
+            }
+
+            showLoading();
+            
+            // Use setTimeout to allow UI to update
+            setTimeout(() => {
+                try {
+                    const analysis = performAnalysis();
+                    displayResults(analysis);
+                    hideLoading();
+                } catch (error) {
+                    hideLoading();
+                    showError('Analysis failed: ' + error.message);
+                }
+            }, 100);
+        }
+
+        // Perform the actual analysis
+        function performAnalysis() {
+            const ctx = originalCanvas.getContext('2d');
+            const width = originalCanvas.width;
+            const height = originalCanvas.height;
+            
+            // Get image data
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            
+            state.totalPixels = width * height;
+            state.plantPixels = 0;
+            
+            // Create a new ImageData for processed image
+            const processedData = ctx.createImageData(width, height);
+            const processed = processedData.data;
+            
+            // Analyze based on selected mode
+            switch (state.analysisMode) {
+                case 'green':
+                    analyzeGreen(data, processed, width, height);
+                    break;
+                case 'ndvi':
+                    analyzeNDVI(data, processed, width, height);
+                    break;
+                case 'edge':
+                    analyzeEdges(data, processed, width, height);
+                    break;
+                default:
+                    analyzeGreen(data, processed, width, height);
+            }
+            
+            // Draw processed image
+            const processedCtx = processedCanvas.getContext('2d');
+            processedCtx.putImageData(processedData, 0, 0);
+            
+            // Calculate percentage
+            state.coveragePercentage = Math.round((state.plantPixels / state.totalPixels) * 10000) / 100;
+            
+            return {
+                totalPixels: state.totalPixels,
+                plantPixels: state.plantPixels,
+                nonPlantPixels: state.totalPixels - state.plantPixels,
+                coveragePercentage: state.coveragePercentage,
+                ratio: `${Math.round(state.plantPixels / 1000)}:${Math.round((state.totalPixels - state.plantPixels) / 1000)}`
+            };
+        }
+
+        // Green detection analysis
+        function analyzeGreen(data, processed, width, height) {
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                // Simple green detection: high green, lower red and blue
+                // This is a basic approach - in a real app, you'd use a trained ML model
+                const isGreen = g > 100 && g > r * 1.2 && g > b * 1.2 && r < 200 && b < 200;
+                
+                if (isGreen) {
+                    state.plantPixels++;
+                    // Highlight plant pixels in green
+                    processed[i] = 0;     // R
+                    processed[i + 1] = 255; // G
+                    processed[i + 2] = 0;  // B
+                    processed[i + 3] = 255; // Alpha
+                } else {
+                    // Non-plant pixels in grayscale
+                    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                    processed[i] = gray;
+                    processed[i + 1] = gray;
+                    processed[i + 2] = gray;
+                    processed[i + 3] = 255;
+                }
+            }
+        }
+
+        // NDVI-like simulation (Normalized Difference Vegetation Index)
+        function analyzeNDVI(data, processed, width, height) {
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                
+                // Simulate NDVI: (NIR - Red) / (NIR + Red)
+                // Since we don't have NIR band, we'll use green as a proxy for vegetation
+                // and red as the non-vegetation indicator
+                // This is a simulation, real NDVI requires near-infrared data
+                const nirProxy = g; // Using green as a proxy for NIR
+                const red = r;
+                
+                const ndvi = (nirProxy - red) / (nirProxy + red + 0.0001);
+                
+                // NDVI ranges from -1 to 1, vegetation typically > 0.2
+                const isVegetation = ndvi > 0.2;
+                
+                if (isVegetation) {
+                    state.plantPixels++;
+                    // Color based on NDVI value (healthier = more green)
+                    const intensity = Math.min(255, (ndvi + 1) * 127.5);
+                    processed[i] = 0;
+                    processed[i + 1] = intensity * 2;
+                    processed[i + 2] = 0;
+                    processed[i + 3] = 255;
+                } else {
+                    // Non-vegetation in grayscale
+                    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                    processed[i] = gray;
+                    processed[i + 1] = gray;
+                    processed[i + 2] = gray;
+                    processed[i + 3] = 255;
+                }
+            }
+        }
+
+        // Edge detection (Sobel-like)
+        function analyzeEdges(data, processed, width, height) {
+            // First, create a grayscale version
+            const gray = new Array(width * height);
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const idx = (y * width + x) * 4;
+                    gray[y * width + x] = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+                }
+            }
+            
+            // Sobel edge detection
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    const idx = (y * width + x) * 4;
+                    
+                    // Sobel kernels
+                    const gx = (
+                        -1 * gray[(y-1) * width + (x-1)] + 
+                        -2 * gray[(y-1) * width + x] + 
+                        -1 * gray[(y-1) * width + (x+1)] + 
+                        1 * gray[(y+1) * width + (x-1)] + 
+                        2 * gray[(y+1) * width + x] + 
+                        1 * gray[(y+1) * width + (x+1)]
+                    );
+                    
+                    const gy = (
+                        -1 * gray[(y-1) * width + (x-1)] + 
+                        -2 * gray[y * width + (x-1)] + 
+                        -1 * gray[(y+1) * width + (x-1)] + 
+                        1 * gray[(y-1) * width + (x+1)] + 
+                        2 * gray[y * width + (x+1)] + 
+                        1 * gray[(y+1) * width + (x+1)]
+                    );
+                    
+                    const magnitude = Math.min(255, Math.sqrt(gx * gx + gy * gy));
+                    
+                    // For edge detection mode, we consider edges as potential plant boundaries
+                    // This is less accurate for coverage but shows the technique
+                    const isEdge = magnitude > 40;
+                    
+                    // Also check if the area is green
+                    const r = data[idx];
+                    const g = data[idx + 1];
+                    const b = data[idx + 2];
+                    const isGreen = g > 100 && g > r * 1.2 && g > b * 1.2;
+                    
+                    if (isEdge || isGreen) {
+                        state.plantPixels++;
+                        processed[idx] = 0;
+                        processed[idx + 1] = magnitude;
+                        processed[idx + 2] = 0;
+                        processed[idx + 3] = 255;
+                    } else {
+                        processed[idx] = magnitude;
+                        processed[idx + 1] = magnitude;
+                        processed[idx + 2] = magnitude;
+                        processed[idx + 3] = 255;
+                    }
+                }
+            }
+        }
+
+        // Display results
+        function displayResults(analysis) {
+            coverageBadge.textContent = `${analysis.coveragePercentage}%`;
+            progressFill.style.width = `${analysis.coveragePercentage}%`;
+            
+            totalPixelsEl.textContent = analysis.totalPixels.toLocaleString();
+            plantPixelsEl.textContent = analysis.plantPixels.toLocaleString();
+            nonPlantPixelsEl.textContent = analysis.nonPlantPixels.toLocaleString();
+            coverageRatioEl.textContent = analysis.ratio;
+            
+            // Change progress bar color based on coverage
+            if (analysis.coveragePercentage > 50) {
+                progressFill.style.background = 'linear-gradient(90deg, #4caf50, #81c784)';
+            } else if (analysis.coveragePercentage > 25) {
+                progressFill.style.background = 'linear-gradient(90deg, #ff9800, #ffb74d)';
+            } else {
+                progressFill.style.background = 'linear-gradient(90deg, #f44336, #e57373)';
+            }
+        }
+
+        // Reset the app
+        function resetApp() {
+            state.originalImage = null;
+            state.processedImage = null;
+            state.coveragePercentage = 0;
+            state.totalPixels = 0;
+            state.plantPixels = 0;
+            
+            uploadSection.style.display = '';
+            resultsSection.classList.remove('active');
+            errorMessage.classList.remove('active');
+            
+            const ctx1 = originalCanvas.getContext('2d');
+            const ctx2 = processedCanvas.getContext('2d');
+            ctx1.clearRect(0, 0, originalCanvas.width, originalCanvas.height);
+            ctx2.clearRect(0, 0, processedCanvas.width, processedCanvas.height);
+            
+            coverageBadge.textContent = '0%';
+            progressFill.style.width = '0%';
+            totalPixelsEl.textContent = '0';
+            plantPixelsEl.textContent = '0';
+            nonPlantPixelsEl.textContent = '0';
+            coverageRatioEl.textContent = '0:1';
+            progressFill.style.background = 'linear-gradient(90deg, var(--accent), #81c784)';
+        }
+
+        // Download results as JSON
+        function downloadResults() {
+            if (!state.originalImage) {
+                showError('No analysis results to download');
+                return;
+            }
+            
+            const data = {
+                timestamp: new Date().toISOString(),
+                analysis: {
+                    coveragePercentage: state.coveragePercentage,
+                    totalPixels: state.totalPixels,
+                    plantPixels: state.plantPixels,
+                    nonPlantPixels: state.totalPixels - state.plantPixels,
+                    coverageRatio: `${state.plantPixels}:${state.totalPixels - state.plantPixels}`,
+                    analysisMode: state.analysisMode
+                },
+                metadata: {
+                    imageWidth: state.originalImage.width,
+                    imageHeight: state.originalImage.height,
+                    app: 'CoverScope',
+                    version: '1.0.0'
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `coverscope-results-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Show error message
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('active');
+            hideLoading();
+        }
+
+        // Show loading overlay
+        function showLoading() {
+            loadingOverlay.classList.add('active');
+        }
+
+        // Hide loading overlay
+        function hideLoading() {
+            loadingOverlay.classList.remove('active');
+        }
+
+        // Initialize the app
+        function init() {
+            initEventListeners();
+            console.log('CoverScope initialized');
+        }
+
+        // Start the app
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
