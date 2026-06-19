@@ -1,515 +1,382 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CoverScope - AI Plant Coverage Measurement</title>
-    <meta name="description" content="Measure plant coverage with precise AI accuracy">
-    <meta name="theme-color" content="#1a1e1f">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.0/xlsx.full.min.js"></script>
-    <style>
-        :root {
-            --bg-primary: #1a1e1f;
-            --bg-secondary: #2a2e2f;
-            --bg-tertiary: #3a3e3f;
-            --text-primary: #e8eaef;
-            --text-secondary: #a8a8a8;
-            --accent: #4caf50;
-            --accent-hover: #388e3c;
-            --border: #444;
-            --success: #4caf50;
-            --warning: #ff9800;
-            --error: #f44336;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-            color: var(--text-primary);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container { max-width: 1200px; margin: 0 auto; }
-
-        header { text-align: center; padding: 40px 20px; }
-        .logo { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 20px; }
-        .logo-icon { width: 60px; height: 60px; background: linear-gradient(135deg, var(--accent), #2e7d32); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 28px; }
-        .logo h1 { font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, var(--accent), #81c784); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .tagline { font-size: 1.1rem; color: var(--text-secondary); max-width: 600px; margin: 0 auto; }
-
-        .main-content { background: var(--bg-secondary); border-radius: 20px; padding: 30px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); margin-top: 30px; }
-
-        .upload-section { border: 2px dashed var(--border); border-radius: 15px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.3s ease; background: var(--bg-tertiary); margin-bottom: 30px; }
-        .upload-section:hover { border-color: var(--accent); background: rgba(76, 175, 80, 0.1); }
-        .upload-section.drag-over { border-color: var(--accent); background: rgba(76, 175, 80, 0.2); }
-        .upload-icon { font-size: 3rem; color: var(--accent); margin-bottom: 20px; }
-        .upload-text h3 { font-size: 1.3rem; margin-bottom: 10px; }
-        .upload-text p { color: var(--text-secondary); font-size: 0.95rem; }
-        .file-input { display: none; }
-
-        .results-section { display: none; margin-top: 30px; }
-        .results-section.active { display: block; }
-        .image-preview-container { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
-        .image-wrapper { flex: 1; min-width: 300px; }
-        .image-wrapper canvas { width: 100%; border-radius: 10px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); }
-        .image-label { text-align: center; margin-top: 10px; font-weight: 600; color: var(--text-secondary); }
-
-        .stats-card { background: var(--bg-tertiary); border-radius: 15px; padding: 25px; margin-bottom: 20px; }
-        .stats-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-        .stats-header h3 { font-size: 1.2rem; }
-        .coverage-badge { background: linear-gradient(135deg, var(--accent), #2e7d32); color: white; padding: 8px 20px; border-radius: 20px; font-weight: 700; font-size: 1.1rem; }
-        .stat-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
-        .stat-item:last-child { border-bottom: none; }
-        .stat-label { color: var(--text-secondary); }
-        .stat-value { font-weight: 600; color: var(--accent); }
-        .progress-container { margin: 25px 0; }
-        .progress-bar { width: 100%; height: 12px; background: var(--bg-tertiary); border-radius: 6px; overflow: hidden; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #81c784); border-radius: 6px; transition: width 0.5s ease; }
-
-        .controls { display: flex; gap: 15px; flex-wrap: wrap; margin: 25px 0; }
-        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 600; transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; }
-        .btn-primary { background: linear-gradient(135deg, var(--accent), #2e7d32); color: white; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4); }
-        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); }
-        .btn-secondary:hover { background: var(--border); }
-        .btn-icon { font-size: 1.1rem; }
-
-        .toggle-options { display: flex; gap: 15px; margin: 20px 0; flex-wrap: wrap; }
-        .toggle-btn { padding: 8px 16px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 20px; color: var(--text-secondary); cursor: pointer; transition: all 0.3s ease; font-size: 0.9rem; }
-        .toggle-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
-
-        .comparison-section { display: none; margin-top: 30px; }
-        .comparison-section.active { display: block; }
-        .comparison-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-        .comparison-header h3 { font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
-        .comparison-toggle { background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 20px; padding: 6px 12px; cursor: pointer; font-size: 0.85rem; color: var(--text-secondary); transition: all 0.3s ease; }
-        .comparison-toggle.active { background: var(--accent); border-color: var(--accent); color: white; }
-        .comparison-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
-        .comparison-card { background: var(--bg-tertiary); border-radius: 15px; padding: 20px; border: 1px solid var(--border); transition: all 0.3s ease; }
-        .comparison-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-        .comparison-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-        .comparison-card-title { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
-        .comparison-card-date { font-size: 0.75rem; color: var(--text-secondary); text-align: right; }
-        .comparison-card-badge { background: linear-gradient(135deg, var(--accent), #2e7d32); color: white; padding: 6px 12px; border-radius: 12px; font-weight: 700; font-size: 0.85rem; display: inline-block; margin-bottom: 10px; }
-        .comparison-card-stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-        .comparison-card-stat:last-child { border-bottom: none; }
-        .comparison-card-stat-label { color: var(--text-secondary); }
-        .comparison-card-stat-value { font-weight: 600; color: var(--accent); }
-        .comparison-empty { text-align: center; padding: 40px; color: var(--text-secondary); }
-        .comparison-empty p { font-size: 0.95rem; }
-        .delete-btn { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; transition: all 0.3s ease; }
-        .delete-btn:hover { background: rgba(244, 67, 54, 0.2); color: var(--error); }
-
-        .info-section { background: var(--bg-tertiary); border-radius: 15px; padding: 20px; margin-top: 30px; }
-        .info-section h3 { font-size: 1.1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
-        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
-        .info-item { display: flex; align-items: flex-start; gap: 12px; }
-        .info-icon { color: var(--accent); font-size: 1.2rem; margin-top: 2px; }
-        .info-content p { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; }
-
-        .loading-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); justify-content: center; align-items: center; z-index: 1000; }
-        .loading-overlay.active { display: flex; }
-        .spinner { width: 60px; height: 60px; border: 4px solid var(--bg-secondary); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .error-message { display: none; padding: 15px; border-radius: 10px; margin: 20px 0; }
-        .error-message.active { display: block; }
-
-        footer { text-align: center; padding: 40px 20px; color: var(--text-secondary); font-size: 0.9rem; }
-        footer a { color: var(--accent); text-decoration: none; }
-        footer a:hover { text-decoration: underline; }
-
-        @media (max-width: 768px) {
-            body { padding: 15px; }
-            header { padding: 20px 15px; }
-            .logo h1 { font-size: 1.8rem; }
-            .main-content { padding: 20px; }
-            .image-preview-container { flex-direction: column; }
-            .controls { flex-direction: column; }
-            .btn { width: 100%; justify-content: center; }
-            .stats-header { flex-direction: column; align-items: flex-start; }
-            .comparison-grid { grid-template-columns: 1fr; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>CoverScope</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.0/xlsx.full.min.js"></script>
+<style>
+:root{--a:#4caf50;--ad:#2e7d32;--al:#81c784;--b:#1a1e1f;--bs:#2a2e2f;--bt:#3a3e3f;--t:#e8eaef;--ts:#a8a8a8;--br:#444;--e:#f44336}
+*{margin:0;padding:0;box-sizing:border-box;touch-action:manipulation}
+body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,sans-serif;background:linear-gradient(135deg,var(--b),var(--bs));color:var(--t);min-height:100vh;padding:20px}
+.container{max-width:1400px;margin:0 auto;padding:20px}
+header{text-align:center;padding:30px 20px;border-bottom:1px solid var(--br);margin-bottom:20px}
+.logo{display:flex;align-items:center;justify-content:center;gap:15px;margin-bottom:10px}
+.logo-icon{width:50px;height:50px;background:linear-gradient(135deg,var(--a),var(--ad));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px}
+.logo h1{font-size:2rem;font-weight:700;background:linear-gradient(135deg,var(--a),var(--al));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.tagline{font-size:1rem;color:var(--ts);max-width:600px;margin:0 auto}
+.tab-nav{display:flex;background:var(--bs);border-radius:12px;padding:6px;margin-bottom:20px;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.tab-btn{flex:1;padding:12px 20px;background:transparent;border:none;border-radius:8px;color:var(--ts);cursor:pointer;font-size:.95rem;font-weight:600;transition:all .3s;display:flex;align-items:center;justify-content:center;gap:8px}
+.tab-btn:hover{background:rgba(76,175,80,.2);color:var(--t)}
+.tab-btn.active{background:linear-gradient(135deg,var(--a),var(--ad));color:#fff}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.card{background:var(--bs);border-radius:16px;padding:25px;box-shadow:0 8px 24px rgba(0,0,0,.3);margin-bottom:20px}
+.upload-section{border:2px dashed var(--br);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .3s;background:var(--bt);margin-bottom:20px}
+.upload-section:hover{border-color:var(--a);background:rgba(76,175,80,.1)}
+.upload-section.drag-over{border-color:var(--a);background:rgba(76,175,80,.2)}
+.upload-icon{font-size:2.5rem;color:var(--a);margin-bottom:15px}
+.upload-text h3{font-size:1.1rem;margin-bottom:8px}
+.upload-text p{color:var(--ts);font-size:.9rem}
+.file-input{display:none}
+.img-ctr{position:relative;margin:20px 0;overflow:hidden;border-radius:12px;background:var(--bt);cursor:crosshair;display:none}
+.img-wrap{position:relative;overflow:hidden}
+#imageCanvas{display:block;max-width:100%;background:#111}
+#overlayCanvas,#drawingCanvas{position:absolute;top:0;left:0;pointer-events:none}
+#drawingCanvas{pointer-events:auto}
+#squareTool{position:absolute;border:2px dashed var(--a);background:rgba(76,175,80,.1);pointer-events:none;display:none}
+#squareTool.active{display:block}
+.square-handle{position:absolute;width:12px;height:12px;background:var(--a);border-radius:50%;pointer-events:auto;cursor:move}
+.zoom-ctrls{position:absolute;bottom:15px;right:15px;display:flex;gap:10px;background:rgba(0,0,0,.7);padding:8px 12px;border-radius:8px;z-index:10}
+.zoom-btn{background:var(--bt);border:1px solid var(--br);color:var(--t);width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:1.2rem;display:flex;align-items:center;justify-content:center}
+.zoom-btn:hover{background:var(--a);border-color:var(--a)}
+.reset-view{background:var(--bt);border:1px solid var(--br);color:var(--ts);padding:8px 12px;border-radius:6px;cursor:pointer;font-size:.8rem;white-space:nowrap}
+.reset-view:hover{color:var(--t)}
+.cal-sec{background:var(--bt);border-radius:12px;padding:20px;margin-bottom:20px}
+.cal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
+.cal-hdr h3{font-size:1rem;display:flex;align-items:center;gap:8px}
+.cal-info{font-size:.85rem;color:var(--ts);margin-bottom:15px;line-height:1.5}
+.cal-ctrls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cal-inpgrp{display:flex;gap:10px;align-items:center;flex:1;min-width:200px}
+.cal-inp{flex:1;padding:10px 14px;background:var(--bs);border:1px solid var(--br);border-radius:8px;color:var(--t);font-size:.9rem}
+.cal-inp:focus{outline:none;border-color:var(--a)}
+.unit-sel{padding:10px 14px;background:var(--bs);border:1px solid var(--br);border-radius:8px;color:var(--t);cursor:pointer}
+.status-badge{display:inline-block;padding:4px 10px;border-radius:6px;font-size:.75rem;font-weight:600}
+.status-cal{background:rgba(76,175,80,.2);border:1px solid var(--a);color:var(--a)}
+.ana-sec{background:var(--bt);border-radius:12px;padding:20px;margin-bottom:20px}
+.slider-ctr{margin:15px 0}
+.slider-lbl{display:flex;justify-content:space-between;margin-bottom:8px;font-size:.9rem}
+.slider-lbl span:first-child{color:var(--ts)}
+.slider-lbl span:last-child{color:var(--a);font-weight:600}
+input[type=range]{width:100%;height:6px;border-radius:3px;background:var(--bs);outline:none;-webkit-appearance:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;background:var(--a);cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--a);cursor:pointer;border:none}
+.tool-sel{display:flex;gap:10px;margin:15px 0;flex-wrap:wrap}
+.tool-btn{padding:10px 16px;background:var(--bs);border:1px solid var(--br);border-radius:8px;color:var(--ts);cursor:pointer;font-size:.85rem;transition:all .3s;display:flex;align-items:center;gap:6px}
+.tool-btn:hover{background:rgba(76,175,80,.2);border-color:var(--a);color:var(--t)}
+.tool-btn.active{background:linear-gradient(135deg,var(--a),var(--ad));border-color:var(--a);color:#fff}
+.brush-ctrls{display:flex;gap:10px;align-items:center;margin:10px 0;display:none}
+.brush-ctrls.active{display:flex}
+.brush-mode{display:flex;gap:5px}
+.brush-btn{padding:8px 16px;background:var(--bs);border:1px solid var(--br);border-radius:6px;color:var(--ts);cursor:pointer;font-size:.8rem}
+.brush-btn:hover{background:rgba(76,175,80,.2);border-color:var(--a);color:var(--t)}
+.brush-btn.active{background:var(--a);border-color:var(--a);color:#fff}
+.brush-size{display:flex;align-items:center;gap:8px}
+.btn-grp{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}
+.btn{padding:12px 24px;border:none;border-radius:8px;cursor:pointer;font-size:.95rem;font-weight:600;transition:all .3s;display:flex;align-items:center;gap:8px}
+.btn-p{background:linear-gradient(135deg,var(--a),var(--ad));color:#fff}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(76,175,80,.4)}
+.btn-s{background:var(--bt);color:var(--t);border:1px solid var(--br)}
+.btn-s:hover{background:var(--br)}
+.btn-d{background:rgba(244,67,54,.2);color:var(--e);border:1px solid var(--e)}
+.btn-d:hover{background:var(--e);color:#fff}
+.results-sec{background:var(--bt);border-radius:12px;padding:20px;margin-bottom:20px}
+.results-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin:15px 0}
+.result-card{background:var(--bs);border-radius:10px;padding:15px;text-align:center}
+.result-value{font-size:1.8rem;font-weight:700;color:var(--a);margin:8px 0}
+.result-lbl{font-size:.8rem;color:var(--ts)}
+.vol-sec{margin-top:15px;display:none}
+.vol-sec.active{display:block}
+.vol-res{margin-top:15px;padding:15px;background:var(--bt);border-radius:8px;display:none}
+.vol-res.active{display:block}
+ history-tab .card,.compare-tab .card{padding:15px}
+.history-list{display:grid;gap:15px}
+.history-card{background:var(--bt);border-radius:12px;padding:20px;border:1px solid var(--br);transition:all .3s}
+.history-card:hover{border-color:var(--a)}
+.history-card-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:15px}
+.history-card-title{font-size:1.1rem;font-weight:600}
+.history-card-actions{display:flex;gap:8px}
+.rename-btn,.select-btn{padding:6px 12px;background:var(--bs);border:1px solid var(--br);border-radius:6px;color:var(--ts);cursor:pointer;font-size:.8rem}
+.rename-btn:hover,.select-btn:hover{color:var(--t)}
+.select-btn.active{background:var(--a);border-color:var(--a);color:#fff}
+.history-card-date{font-size:.75rem;color:var(--ts);margin-bottom:10px}
+.history-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.history-stat{display:flex;flex-direction:column}
+.history-stat-value{font-size:1.1rem;font-weight:600;color:var(--a)}
+.history-stat-lbl{font-size:.75rem;color:var(--ts)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--ts)}
+.empty-state-icon{font-size:3rem;margin-bottom:15px}
+.empty-state h3{font-size:1.1rem;color:var(--t);margin-bottom:10px}
+.compare-ctrls{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.compare-btn{padding:12px 24px;background:var(--bs);border:1px solid var(--br);border-radius:8px;color:var(--t);cursor:pointer;font-size:.9rem;font-weight:600;transition:all .3s}
+.compare-btn:hover{background:var(--a);border-color:var(--a)}
+.compare-chart{background:var(--bt);border-radius:12px;padding:20px;margin-bottom:20px;display:none}
+.compare-chart.active{display:block}
+.compare-bars{display:flex;flex-direction:column;gap:15px}
+.compare-bar{display:flex;align-items:center;gap:15px}
+.compare-bar-lbl{min-width:150px;font-size:.9rem;color:var(--t)}
+.bar-ctr{flex:1;height:30px;background:var(--bs);border-radius:6px;overflow:hidden;position:relative}
+.bar-fill{height:100%;background:linear-gradient(90deg,var(--a),var(--al));border-radius:6px;transition:width .5s}
+.bar-value{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:.8rem;font-weight:600;color:var(--t)}
+.loading-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);justify-content:center;align-items:center;z-index:1000}
+.loading-overlay.active{display:flex}
+.spinner{width:60px;height:60px;border:4px solid var(--bs);border-top-color:var(--a);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.msg{display:none;padding:15px;border-radius:10px;margin:15px 0}
+.msg.active{display:block}
+.error-msg{background:rgba(244,67,54,.1);border:1px solid var(--e);color:var(--e)}
+.succ-msg{background:rgba(76,175,80,.1);border:1px solid var(--a);color:var(--a)}
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.9);z-index:2000;overflow-y:auto;padding:20px}
+.modal-overlay.active{display:flex;align-items:center;justify-content:center}
+.modal{background:var(--bs);border-radius:16px;padding:30px;max-width:800px;max-height:80vh;overflow-y:auto;position:relative}
+.modal-close{position:absolute;top:15px;right:15px;background:var(--bt);border:1px solid var(--br);color:var(--ts);width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:1.2rem;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:var(--e);border-color:var(--e);color:#fff}
+.modal h2{font-size:1.5rem;margin-bottom:20px;color:var(--a)}
+.modal h3{font-size:1.2rem;margin:25px 0 15px 0;color:var(--t)}
+.modal p{color:var(--ts);line-height:1.7;margin-bottom:12px}
+.modal ul{padding-left:20px;margin-bottom:15px}
+.modal li{color:var(--ts);line-height:1.7;margin-bottom:8px}
+.formula{display:block;background:var(--bt);padding:12px;border-radius:8px;margin:15px 0;font-family:Courier New,monospace;font-size:1.1rem;text-align:center;color:var(--a)}
+footer{text-align:center;padding:30px 20px;color:var(--ts);font-size:.9rem}
+@media(max-width:1024px){.container{padding:15px}.logo h1{font-size:1.8rem}.tab-nav{flex-direction:column}.tab-btn{width:100%}.cal-ctrls{flex-direction:column}.cal-inpgrp{flex:none;width:100%}}
+@media(max-width:768px){.tagline{font-size:.9rem}.card{padding:15px}.results-grid{grid-template-columns:repeat(2,1fr)}.history-stats{grid-template-columns:1fr 1fr}.compare-bar{flex-direction:column;gap:8px}.compare-bar-lbl{min-width:auto;text-align:center}}
+</style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="logo">
-                <div class="logo-icon">🌱</div>
-                <h1>CoverScope</h1>
-            </div>
-            <p class="tagline">Measure plant coverage with precise AI accuracy</p>
-        </header>
+<div class="container">
+<header>
+<div class="logo"><div class="logo-icon">🌱</div><h1>CoverScope</h1></div>
+<p class="tagline">Precise plant coverage measurement using Excess-Green analysis</p>
+</header>
 
-        <main class="main-content">
-            <div class="upload-section" id="uploadSection">
-                <div class="upload-icon">📁</div>
-                <div class="upload-text">
-                    <h3>Upload or Drop an Image</h3>
-                    <p>Drag and drop an image here, or click to browse</p>
-                </div>
-                <input type="file" id="fileInput" class="file-input" accept="image/*" />
-            </div>
+<div class="tab-nav">
+<button class="tab-btn active" data-tab="analyze">🔍 Analyze</button>
+<button class="tab-btn" data-tab="history">📜 History</button>
+<button class="tab-btn" data-tab="compare">📊 Compare</button>
+<button class="tab-btn" onclick="openMethods()">ℹ️ Methods</button>
+</div>
 
-            <div class="error-message" id="errorMessage"></div>
+<div id="analyze-tab" class="tab-content active">
+<div class="card">
+<div class="upload-section" id="uploadSection">
+<div class="upload-icon">📁</div>
+<div class="upload-text"><h3>Upload a Photo</h3><p>Drag and drop or click</p></div>
+<input type="file" id="fileInput" class="file-input" accept="image/*">
+</div>
 
-            <div class="toggle-options">
-                <button class="toggle-btn active" data-mode="green" id="greenMode">🌿 Green Detection</button>
-                <button class="toggle-btn" data-mode="ndvi" id="ndviMode">📊 NDVI Simulation</button>
-                <button class="toggle-btn" data-mode="edge" id="edgeMode">🎯 Edge Detection</button>
-            </div>
+<div class="msg error-msg" id="errorMsg"></div>
 
-            <div class="results-section" id="resultsSection">
-                <div class="image-preview-container">
-                    <div class="image-wrapper">
-                        <canvas id="originalCanvas"></canvas>
-                        <div class="image-label">Original Image</div>
-                    </div>
-                    <div class="image-wrapper">
-                        <canvas id="processedCanvas"></canvas>
-                        <div class="image-label">Processed (Plant Detection)</div>
-                    </div>
-                </div>
+<div class="img-ctr" id="imgCtr">
+<div class="img-wrap" id="imgWrap">
+<canvas id="imageCanvas"></canvas>
+<canvas id="overlayCanvas"></canvas>
+<canvas id="drawingCanvas"></canvas>
+<div id="squareTool"></div>
+<div class="zoom-ctrls">
+<button class="zoom-btn" onclick="zoomIn()">+</button>
+<button class="zoom-btn" onclick="zoomOut()">−</button>
+<button class="reset-view" onclick="resetView()">Reset</button>
+</div>
+</div>
+</div>
 
-                <div class="stats-card">
-                    <div class="stats-header">
-                        <h3>Plant Coverage Results</h3>
-                        <div class="coverage-badge" id="coverageBadge">0%</div>
-                    </div>
-                    <div class="progress-container">
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-                        </div>
-                    </div>
-                    <div class="stat-item"><span class="stat-label">Total Pixels:</span><span class="stat-value" id="totalPixels">0</span></div>
-                    <div class="stat-item"><span class="stat-label">Plant Pixels:</span><span class="stat-value" id="plantPixels">0</span></div>
-                    <div class="stat-item"><span class="stat-label">Non-Plant Pixels:</span><span class="stat-value" id="nonPlantPixels">0</span></div>
-                    <div class="stat-item"><span class="stat-label">Coverage Ratio:</span><span class="stat-value" id="coverageRatio">0:1</span></div>
-                    <div class="stat-item"><span class="stat-label">Analysis Mode:</span><span class="stat-value" id="analysisMode">Green Detection</span></div>
-                    <div class="stat-item"><span class="stat-label">Timestamp:</span><span class="stat-value" id="analysisTimestamp">-</span></div>
-                </div>
+<div class="cal-sec" id="calSec" style="display:none">
+<div class="cal-hdr"><h3>📏 Calibrate Scale</h3><span class="status-badge status-cal" id="calStatus" style="display:none"></span></div>
+<p class="cal-info">Tap two points of known length, then enter distance. Used for real area calculations.</p>
+<div class="cal-ctrls">
+<div class="cal-inpgrp">
+<input type="number" id="calDist" class="cal-inp" placeholder="Enter distance" step="0.01" min="0.01">
+<select id="calUnit" class="unit-sel"><option value="m">m</option><option value="ft">ft</option></select>
+</div>
+<button class="btn btn-p" id="startCalBtn" onclick="startCal()">Start</button>
+<button class="btn btn-s" id="clearCalBtn" onclick="clearCal()" style="display:none">Clear</button>
+</div>
+<div id="calPointsInfo" style="display:none;margin-top:10px;font-size:.85rem;color:var(--ts)">Points: <span id="pointsCount">0/2</span></div>
+</div>
 
-                <div class="controls">
-                    <button class="btn btn-primary" id="analyzeBtn"><span class="btn-icon">🔍</span> Analyze Image</button>
-                    <button class="btn btn-secondary" id="resetBtn"><span class="btn-icon">🔄</span> Reset</button>
-                    <button class="btn btn-secondary" id="downloadBtn"><span class="btn-icon">📊</span> Download Excel</button>
-                    <button class="btn btn-secondary" id="saveBtn"><span class="btn-icon">💾</span> Save Results</button>
-                </div>
+<div class="ana-sec" id="anaSec" style="display:none">
+<div class="cal-hdr"><h3>🔬 Analysis Settings</h3><span class="status-badge status-cal" id="anaStatus" style="display:none">Analyzed</span></div>
+<div class="slider-ctr">
+<div class="slider-lbl"><span>Sensitivity</span><span id="sensVal">Moderate</span></div>
+<input type="range" id="sensSlider" min="0" max="100" value="50" oninput="updateSens()">
+</div>
+<p style="font-size:.8rem;color:var(--ts);margin-bottom:15px">Aggressive=catches faint green | Conservative=only strong green</p>
+<div class="tool-sel">
+<button class="tool-btn" id="targetBtn" onclick="toggleTarget()">🎯 Target Area</button>
+<button class="tool-btn" id="squareBtn" onclick="toggleSquare()">📐 1m² Square</button>
+<button class="tool-btn" id="volumeBtn" onclick="toggleVolume()">📦 Volume</button>
+<button class="tool-btn active" id="brushBtn" onclick="setBrush('off')">✏️ Brush: Off</button>
+</div>
+<div class="brush-ctrls" id="brushCtrls">
+<div class="brush-mode">
+<button class="brush-btn" id="addBtn" onclick="setBrush('add')">Add</button>
+<button class="brush-btn active" id="eraseBtn" onclick="setBrush('erase')">Erase</button>
+</div>
+<div class="brush-size">
+<span>Size:</span><input type="range" id="brushSize" min="1" max="50" value="10" oninput="updateBrush()"><span id="brushSizeVal">10</span>
+</div>
+</div>
+<div class="btn-grp">
+<button class="btn btn-p" id="analyzeBtn" onclick="analyze()" disabled>🔍 Analyze</button>
+<button class="btn btn-s" id="toggleBtn" onclick="toggleOverlay()" disabled>👁️ Toggle Overlay</button>
+<button class="btn btn-p" id="saveBtn" onclick="saveMeasure()" disabled>💾 Save</button>
+</div>
+</div>
 
-                <div class="comparison-section active" id="comparisonSection">
-                    <div class="comparison-header">
-                        <h3>📈 Previous Analyses</h3>
-                        <button class="comparison-toggle" id="toggleComparison">Hide</button>
-                    </div>
-                    <div class="comparison-grid" id="comparisonGrid">
-                        <div class="comparison-empty"><p>No previous analyses yet</p><p>Save your results to track progress over time</p></div>
-                    </div>
-                </div>
-            </div>
+<div class="results-sec" id="resultsSec" style="display:none">
+<h3>📊 Results</h3>
+<div class="results-grid">
+<div class="result-card"><div class="result-lbl">Coverage</div><div class="result-value" id="covPct">0%</div></div>
+<div class="result-card"><div class="result-lbl">Plant Area</div><div class="result-value" id="plantArea">0 m²</div></div>
+<div class="result-card"><div class="result-lbl">Total Area</div><div class="result-value" id="totalArea">0 m²</div></div>
+<div class="result-card"><div class="result-lbl">Health</div><div class="result-value" id="healthIdx">0%</div></div>
+</div>
+<div class="vol-sec" id="volSec">
+<h4>Cubic Volume</h4>
+<div class="btn-grp">
+<input type="number" id="hNW" class="cal-inp" placeholder="NW" step="0.01" min="0" oninput="volChanged()">
+<input type="number" id="hNE" class="cal-inp" placeholder="NE" step="0.01" min="0" oninput="volChanged()">
+<input type="number" id="hSE" class="cal-inp" placeholder="SE" step="0.01" min="0" oninput="volChanged()">
+<input type="number" id="hSW" class="cal-inp" placeholder="SW" step="0.01" min="0" oninput="volChanged()">
+<input type="number" id="hC" class="cal-inp" placeholder="Center" step="0.01" min="0" oninput="volChanged()">
+</div>
+<button class="btn btn-s" onclick="calcVol()" style="margin-top:10px">Calculate</button>
+<div class="vol-res" id="volRes">
+<div class="result-card" style="margin:0"><div class="result-lbl">Volume</div><div class="result-value" id="volVal">0 m³</div></div>
+</div>
+</div>
+</div>
+</div>
+</div>
 
-            <div class="info-section">
-                <h3>ⓘ How It Works</h3>
-                <div class="info-grid">
-                    <div class="info-item"><div class="info-icon">📸</div><div class="info-content"><p><strong>Upload an image</strong> of your field, garden, or any area with plants</p></div></div>
-                    <div class="info-item"><div class="info-icon">🤖</div><div class="info-content"><p><strong>AI analysis</strong> detects green/plant areas using advanced algorithms</p></div></div>
-                    <div class="info-item"><div class="info-icon">📊</div><div class="info-content"><p><strong>Get instant results</strong> showing plant coverage percentage and statistics</p></div></div>
-                    <div class="info-item"><div class="info-icon">📈</div><div class="info-content"><p><strong>Compare over time</strong> by saving and reviewing previous analyses</p></div></div>
-                </div>
-            </div>
-        </main>
-        <footer><p>Built with ✨ AI Powered Plant Analysis</p></footer>
-    </div>
-    <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+<div id="history-tab" class="tab-content">
+<div class="card">
+<div class="history-list" id="historyList"></div>
+</div>
+</div>
 
-    <script>
-        const state = {
-            originalImage: null, coveragePercentage: 0, totalPixels: 0, plantPixels: 0,
-            analysisMode: 'green', currentResult: null, previousResults: []
-        };
+<div id="compare-tab" class="tab-content">
+<div class="card">
+<p style="color:var(--ts);margin-bottom:20px">Select measurements from History to compare (min 2)</p>
+<div class="compare-ctrls" id="compareCtrls" style="display:none">
+<button class="compare-btn" onclick="doCompare()">Compare</button>
+<button class="compare-btn" onclick="clearSel()">Clear</button>
+</div>
+<div class="compare-chart" id="compareChart">
+<h3>Comparison</h3>
+<div class="compare-bars" id="compareBars"></div>
+<div class="btn-grp" style="margin-top:20px">
+<button class="btn btn-s" onclick="exportExcel()">📊 Excel</button>
+<button class="btn btn-s" onclick="exportPDF()">📄 PDF</button>
+</div>
+</div>
+</div>
+</div>
 
-        const uploadSection = document.getElementById('uploadSection');
-        const fileInput = document.getElementById('fileInput');
-        const resultsSection = document.getElementById('resultsSection');
-        const originalCanvas = document.getElementById('originalCanvas');
-        const processedCanvas = document.getElementById('processedCanvas');
-        const analyzeBtn = document.getElementById('analyzeBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const saveBtn = document.getElementById('saveBtn');
-        const coverageBadge = document.getElementById('coverageBadge');
-        const progressFill = document.getElementById('progressFill');
-        const totalPixelsEl = document.getElementById('totalPixels');
-        const plantPixelsEl = document.getElementById('plantPixels');
-        const nonPlantPixelsEl = document.getElementById('nonPlantPixels');
-        const coverageRatioEl = document.getElementById('coverageRatio');
-        const analysisModeEl = document.getElementById('analysisMode');
-        const analysisTimestampEl = document.getElementById('analysisTimestamp');
-        const errorMessage = document.getElementById('errorMessage');
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        const greenMode = document.getElementById('greenMode');
-        const ndviMode = document.getElementById('ndviMode');
-        const edgeMode = document.getElementById('edgeMode');
-        const comparisonSection = document.getElementById('comparisonSection');
-        const comparisonGrid = document.getElementById('comparisonGrid');
-        const toggleComparison = document.getElementById('toggleComparison');
-        const modeButtons = [greenMode, ndviMode, edgeMode];
+<div class="loading-overlay" id="loading"><div class="spinner"></div></div>
 
-        function initEventListeners() {
-            fileInput.addEventListener('change', handleFileUpload);
-            uploadSection.addEventListener('dragover', handleDragOver);
-            uploadSection.addEventListener('dragleave', handleDragLeave);
-            uploadSection.addEventListener('drop', handleDrop);
-            uploadSection.addEventListener('click', () => fileInput.click());
-            analyzeBtn.addEventListener('click', analyzeImage);
-            resetBtn.addEventListener('click', resetApp);
-            downloadBtn.addEventListener('click', downloadExcel);
-            saveBtn.addEventListener('click', saveResult);
-            modeButtons.forEach(btn => btn.addEventListener('click', () => {
-                modeButtons.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                state.analysisMode = btn.dataset.mode;
-                analysisModeEl.textContent = btn.textContent.trim();
-            }));
-            toggleComparison.addEventListener('click', toggleComparisonSection);
-            loadPreviousResults();
-        }
+<div class="modal-overlay" id="modal"><div class="modal"><button class="modal-close" onclick="closeModal()">×</button>
+<h2>📚 Methodology</h2>
+<h3>Overview</h3>
+<p>CoverScope measures living green vegetation coverage from a photo, entirely on device. Deterministic and reproducible - no internet or AI guessing required.</p>
+<h3>Core Method: Excess-Green Index</h3>
+<p>The primary detection uses the <strong>Excess-Green Index (ExG)</strong>, a standard remote-sensing formula:</p>
+<span class="formula">ExG = (2 &times; Green) &minus; Red &minus; Blue</span>
+<p>This works because healthy green vegetation reflects strongly in green while absorbing red and blue light. High ExG = green plants; low/negative ExG = soil, walls, sky, non-vegetation.</p>
+<h3>Green-Dominance Check</h3>
+<p>In addition to ExG, we verify: <strong>Green &gt; Red AND Green &gt; Blue</strong></p>
+<p>This prevents false positives from bright red/blue objects that might have high ExG values.</p>
+<h3>Sensitivity</h3>
+<p><strong>Aggressive</strong> (left): Lower threshold - catches faint green, more inclusive<br><strong>Conservative</strong> (right): Higher threshold - only strong green, more exclusive</p>
+<h3>Scale Calibration</h3>
+<ol>
+<li>Select two points of known real-world distance</li>
+<li>Enter the actual distance between them</li>
+<li>App calculates: <strong>metresPerPixel = realDistance / pixelDistance</strong></li>
+<li>Plant area (m²) = plantPixels &times; (metresPerPixel)²</li>
+</ol>
+<h3>Health Index</h3>
+<p><strong>Health = (Average Green Saturation + Average Green Value) / 2</strong></p>
+<p>Higher values = more vibrant, healthy vegetation. Best for comparing the same area over time.</p>
+<h3>Manual Correction</h3>
+<ul><li><strong>Add Mode:</strong> Paint missed plants</li><li><strong>Erase Mode:</strong> Remove false positives</li><li>Corrections update calculations in real-time</li></ul>
+<h3>Target Area</h3>
+<p>Focus analysis on a specific region (rooftop, garden bed, wall) rather than the entire image.</p>
+<h3>1m² Square</h3>
+<p>Drag the 1m² reference square anywhere on your calibrated image for instant coverage % of that exact patch.</p>
+<h3>Cubic Volume</h3>
+<ol><li>Place 1m² square on target area</li><li>Enter plant heights at 4 corners + center</li><li>Volume (m³) = Average Height &times; Coverage % &times; 1m²</li></ol>
+<h3>Applications</h3>
+<ul><li>Green roof vegetation monitoring</li><li>Garden bed coverage tracking</li><li>Wall vegetation measurement</li><li>Research & reporting</li></ul>
+</div></div>
 
-        function toggleComparisonSection() {
-            comparisonSection.classList.toggle('active');
-            toggleComparison.textContent = comparisonSection.classList.contains('active') ? 'Hide' : 'Show';
-        }
+<script>
+const S={image:null,working:null,imgScale:1,offset:{x:0,y:0},cal:{on:false,points:[],dist:null,unit:'m',mpp:null},ana:{on:false,sens:50,pixels:0,total:0,cov:0,area:0,tarea:0,health:0},target:{on:false,x:0,y:0,w:0,h:0},square:{on:false,x:0,y:0,w:0,h:0},volume:{on:false},brush:{mode:'off',size:10},overlay:true,zoom:1,maxZ:4,minZ:.25,measures:[],sel:[],drawing:false,lastP:null,pan:{on:false,start:{x:0,y:0}},calP:0};
+const U=document.getElementById('uploadSection'),FI=document.getElementById('fileInput'),IC=document.getElementById('imgCtr'),IW=document.getElementById('imgWrap'),IMC=document.getElementById('imageCanvas'),OC=document.getElementById('overlayCanvas'),DC=document.getElementById('drawingCanvas'),CS=document.getElementById('calSec'),AS=document.getElementById('anaSec'),RS=document.getElementById('resultsSec'),ST=document.getElementById('squareTool'),CSB=document.getElementById('calStatus'),CDI=document.getElementById('calDist'),CUN=document.getElementById('calUnit'),SCB=document.getElementById('startCalBtn'),CCB=document.getElementById('clearCalBtn'),PCI=document.getElementById('calPointsInfo'),PCS=document.getElementById('pointsCount'),SS=document.getElementById('sensSlider'),SV=document.getElementById('sensVal'),TBTN=document.getElementById('targetBtn'),SBTN=document.getElementById('squareBtn'),VBTN=document.getElementById('volumeBtn'),BBTN=document.getElementById('brushBtn'),BC=document.getElementById('brushCtrls'),ABTN=document.getElementById('addBtn'),EBTN=document.getElementById('eraseBtn'),BS=document.getElementById('brushSize'),BSV=document.getElementById('brushSizeVal'),ANB=document.getElementById('analyzeBtn'),TOB=document.getElementById('toggleBtn'),SAVB=document.getElementById('saveBtn'),CP=document.getElementById('covPct'),PA=document.getElementById('plantArea'),TA=document.getElementById('totalArea'),HI=document.getElementById('healthIdx'),VS=document.getElementById('volSec'),VR=document.getElementById('volRes'),VV=document.getElementById('volVal'),HL=document.getElementById('historyList'),CC=document.getElementById('compareCtrls'),CH=document.getElementById('compareChart'),CB=document.getElementById('compareBars'),EM=document.getElementById('errorMsg'),LO=document.getElementById('loading'),MODAL=document.getElementById('modal');
 
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (file && file.type.startsWith('image/')) processImage(file);
-            else showError('Please upload a valid image file');
-        }
-
-        function handleDragOver(event) { event.preventDefault(); event.stopPropagation(); uploadSection.classList.add('drag-over'); }
-        function handleDragLeave(event) { event.preventDefault(); event.stopPropagation(); uploadSection.classList.remove('drag-over'); }
-        function handleDrop(event) {
-            event.preventDefault(); event.stopPropagation(); uploadSection.classList.remove('drag-over');
-            const files = event.dataTransfer.files;
-            if (files && files.length > 0 && files[0].type.startsWith('image/')) processImage(files[0]);
-            else showError('Please drop a valid image file');
-        }
-
-        function processImage(file) {
-            errorMessage.classList.remove('active', 'success');
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = () => { state.originalImage = img; drawOriginalImage(); uploadSection.style.display = 'none'; resultsSection.classList.add('active'); };
-                img.onerror = () => showError('Error loading image');
-                img.src = e.target.result;
-            };
-            reader.onerror = () => showError('Error reading file');
-            reader.readAsDataURL(file);
-        }
-
-        function drawOriginalImage() {
-            if (!state.originalImage) return;
-            const ctx = originalCanvas.getContext('2d');
-            const maxWidth = 600, maxHeight = 600;
-            const ratio = Math.min(maxWidth / state.originalImage.width, maxHeight / state.originalImage.height);
-            originalCanvas.width = state.originalImage.width * ratio;
-            originalCanvas.height = state.originalImage.height * ratio;
-            ctx.drawImage(state.originalImage, 0, 0, state.originalImage.width, state.originalImage.height, 0, 0, originalCanvas.width, originalCanvas.height);
-            processedCanvas.width = originalCanvas.width; processedCanvas.height = originalCanvas.height;
-        }
-
-        function analyzeImage() {
-            if (!state.originalImage) { showError('Please upload an image first'); return; }
-            showLoading();
-            setTimeout(() => {
-                try { const analysis = performAnalysis(); displayResults(analysis); hideLoading(); }
-                catch (error) { hideLoading(); showError('Analysis failed: ' + error.message); }
-            }, 100);
-        }
-
-        function performAnalysis() {
-            const ctx = originalCanvas.getContext('2d');
-            const width = originalCanvas.width, height = originalCanvas.height;
-            const imageData = ctx.getImageData(0, 0, width, height);
-            const data = imageData.data;
-            state.totalPixels = width * height; state.plantPixels = 0;
-            const processedData = ctx.createImageData(width, height);
-            const processed = processedData.data;
-            switch (state.analysisMode) {
-                case 'green': analyzeGreen(data, processed, width, height); break;
-                case 'ndvi': analyzeNDVI(data, processed, width, height); break;
-                case 'edge': analyzeEdges(data, processed, width, height); break;
-                default: analyzeGreen(data, processed, width, height);
-            }
-            const processedCtx = processedCanvas.getContext('2d');
-            processedCtx.putImageData(processedData, 0, 0);
-            state.coveragePercentage = Math.round((state.plantPixels / state.totalPixels) * 10000) / 100;
-            state.currentResult = {
-                timestamp: new Date().toISOString(), coveragePercentage: state.coveragePercentage,
-                totalPixels: state.totalPixels, plantPixels: state.plantPixels,
-                nonPlantPixels: state.totalPixels - state.plantPixels, analysisMode: state.analysisMode,
-                imageName: 'image_' + Date.now()
-            };
-            return state.currentResult;
-        }
-
-        function analyzeGreen(data, processed, width, height) {
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i], g = data[i + 1], b = data[i + 2];
-                const isGreen = g > 100 && g > r * 1.2 && g > b * 1.2 && r < 200 && b < 200;
-                if (isGreen) { state.plantPixels++; processed[i] = 0; processed[i + 1] = 255; processed[i + 2] = 0; processed[i + 3] = 255; }
-                else { const gray = 0.299 * r + 0.587 * g + 0.114 * b; processed[i] = gray; processed[i + 1] = gray; processed[i + 2] = gray; processed[i + 3] = 255; }
-            }
-        }
-
-        function analyzeNDVI(data, processed, width, height) {
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i], g = data[i + 1], b = data[i + 2];
-                const ndvi = (g - r) / (g + r + 0.0001);
-                const isVegetation = ndvi > 0.2;
-                if (isVegetation) { state.plantPixels++; const intensity = Math.min(255, (ndvi + 1) * 127.5); processed[i] = 0; processed[i + 1] = intensity * 2; processed[i + 2] = 0; processed[i + 3] = 255; }
-                else { const gray = 0.299 * r + 0.587 * g + 0.114 * b; processed[i] = gray; processed[i + 1] = gray; processed[i + 2] = gray; processed[i + 3] = 255; }
-            }
-        }
-
-        function analyzeEdges(data, processed, width, height) {
-            const gray = new Array(width * height);
-            for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) gray[y * width + x] = 0.299 * data[(y * width + x) * 4] + 0.587 * data[(y * width + x) * 4 + 1] + 0.114 * data[(y * width + x) * 4 + 2];
-            for (let y = 1; y < height - 1; y++) for (let x = 1; x < width - 1; x++) {
-                const idx = (y * width + x) * 4;
-                const gx = -1 * gray[(y-1) * width + (x-1)] -2 * gray[(y-1) * width + x] -1 * gray[(y-1) * width + (x+1)] +1 * gray[(y+1) * width + (x-1)] +2 * gray[(y+1) * width + x] +1 * gray[(y+1) * width + (x+1)];
-                const gy = -1 * gray[(y-1) * width + (x-1)] -2 * gray[y * width + (x-1)] -1 * gray[(y+1) * width + (x-1)] +1 * gray[(y-1) * width + (x+1)] +2 * gray[y * width + (x+1)] +1 * gray[(y+1) * width + (x+1)];
-                const magnitude = Math.min(255, Math.sqrt(gx * gx + gy * gy));
-                const isEdge = magnitude > 40;
-                const r2 = data[idx], g2 = data[idx + 1], b2 = data[idx + 2];
-                const isGreen = g2 > 100 && g2 > r2 * 1.2 && g2 > b2 * 1.2;
-                if (isEdge || isGreen) { state.plantPixels++; processed[idx] = 0; processed[idx + 1] = magnitude; processed[idx + 2] = 0; processed[idx + 3] = 255; }
-                else { processed[idx] = magnitude; processed[idx + 1] = magnitude; processed[idx + 2] = magnitude; processed[idx + 3] = 255; }
-            }
-        }
-
-        function displayResults(analysis) {
-            coverageBadge.textContent = analysis.coveragePercentage + '%';
-            progressFill.style.width = analysis.coveragePercentage + '%';
-            totalPixelsEl.textContent = analysis.totalPixels.toLocaleString();
-            plantPixelsEl.textContent = analysis.plantPixels.toLocaleString();
-            nonPlantPixelsEl.textContent = analysis.nonPlantPixels.toLocaleString();
-            coverageRatioEl.textContent = analysis.plantPixels > 0 ? (analysis.plantPixels / analysis.nonPlantPixels).toFixed(2) + ':1' : '0:1';
-            analysisTimestampEl.textContent = new Date(analysis.timestamp).toLocaleString();
-            if (analysis.coveragePercentage > 50) progressFill.style.background = 'linear-gradient(90deg, #4caf50, #81c784)';
-            else if (analysis.coveragePercentage > 25) progressFill.style.background = 'linear-gradient(90deg, #ff9800, #ffb74d)';
-            else progressFill.style.background = 'linear-gradient(90deg, #f44336, #e57373)';
-        }
-
-        function saveResult() {
-            if (!state.currentResult) { showError('No analysis results to save'); return; }
-            state.previousResults.unshift({...state.currentResult});
-            if (state.previousResults.length > 10) state.previousResults.pop();
-            localStorage.setItem('coverscope_results', JSON.stringify(state.previousResults));
-            renderComparisonGrid();
-            showError('Results saved!', 'success');
-        }
-
-        function loadPreviousResults() {
-            const saved = localStorage.getItem('coverscope_results');
-            if (saved) { state.previousResults = JSON.parse(saved); renderComparisonGrid(); }
-        }
-
-        function renderComparisonGrid() {
-            if (state.previousResults.length === 0) {
-                comparisonGrid.innerHTML = '<div class="comparison-empty"><p>No previous analyses yet</p><p>Save your results to track progress over time</p></div>';
-                return;
-            }
-            comparisonGrid.innerHTML = state.previousResults.map((result, index) => {
-                const date = new Date(result.timestamp);
-                const diff = state.currentResult ? (state.currentResult.coveragePercentage - result.coveragePercentage).toFixed(1) : 0;
-                return '<div class="comparison-card"><div class="comparison-card-header"><div><div class="comparison-card-badge">' + result.coveragePercentage + '%</div><div class="comparison-card-title">Analysis #' + (index + 1) + '</div></div><div class="comparison-card-date">' + date.toLocaleDateString() + '<br>' + date.toLocaleTimeString() + '</div></div>' +
-                    '<div class="comparison-card-stat"><span class="comparison-card-stat-label">Mode:</span><span class="comparison-card-stat-value">' + result.analysisMode + '</span></div>' +
-                    '<div class="comparison-card-stat"><span class="comparison-card-stat-label">Plant Pixels:</span><span class="comparison-card-stat-value">' + result.plantPixels.toLocaleString() + '</span></div>' +
-                    '<div class="comparison-card-stat"><span class="comparison-card-stat-label">Coverage:</span><span class="comparison-card-stat-value">' + result.coveragePercentage + '%</span></div>' +
-                    (diff ? '<div class="comparison-card-stat"><span class="comparison-card-stat-label">vs Current:</span><span class="comparison-card-stat-value" style="color: ' + (diff > 0 ? 'var(--accent)' : 'var(--error)') + '">' + (diff > 0 ? '+' : '') + diff + '%</span></div>' : '') +
-                    '<div style="display: flex; justify-content: flex-end; margin-top: 10px;"><button class="delete-btn" onclick="deleteResult(' + index + ')">Delete</button></div></div>';
-            }).join('');
-        }
-
-        function deleteResult(index) {
-            state.previousResults.splice(index, 1);
-            localStorage.setItem('coverscope_results', JSON.stringify(state.previousResults));
-            renderComparisonGrid();
-        }
-
-        function downloadExcel() {
-            if (!state.currentResult) { showError('No analysis results to download'); return; }
-            const wb = XLSX.utils.book_new();
-            const currentData = [
-                ['CoverScope Analysis Results', ''],
-                ['Timestamp', state.currentResult.timestamp],
-                ['Analysis Mode', state.currentResult.analysisMode],
-                ['', ''],
-                ['Results', ''],
-                ['Coverage Percentage', state.currentResult.coveragePercentage + '%'],
-                ['Total Pixels', state.currentResult.totalPixels],
-                ['Plant Pixels', state.currentResult.plantPixels],
-                ['Non-Plant Pixels', state.currentResult.nonPlantPixels],
-                ['', ''],
-                ['Image Info', ''],
-                ['Width', state.originalImage?.width || 0],
-                ['Height', state.originalImage?.height || 0]
-            ];
-            const currentWs = XLSX.utils.aoa_to_sheet(currentData);
-            XLSX.utils.book_append_sheet(wb, currentWs, 'Current Analysis');
-            if (state.previousResults.length > 0) {
-                const comparisonData = [['Previous Analyses', ''], ['#', 'Timestamp', 'Mode', 'Coverage %', 'Plant Pixels', 'Change from Current']];
-                state.previousResults.forEach((result, index) => {
-                    const date = new Date(result.timestamp);
-                    const diff = state.currentResult ? (state.currentResult.coveragePercentage - result.coveragePercentage).toFixed(1) : 0;
-                    comparisonData.push([index + 1, date.toLocaleString(), result.analysisMode, result.coveragePercentage + '%', result.plantPixels, (diff > 0 ? '+' : '') + diff + '%']);
-                });
-                const comparisonWs = XLSX.utils.aoa_to_sheet(comparisonData);
-                XLSX.utils.book_append_sheet(wb, comparisonWs, 'Comparison History');
-            }
-            XLSX.writeFile(wb, 'CoverScope-Results-' + new Date().toISOString().split('T')[0] + '.xlsx');
-        }
-
-        function resetApp() {
-            state.originalImage = null; state.processedImage = null; state.coveragePercentage = 0;
-            state.totalPixels = 0; state.plantPixels = 0; state.currentResult = null;
-            uploadSection.style.display = ''; resultsSection.classList.remove('active');
-            errorMessage.classList.remove('active', 'success');
-            const ctx1 = originalCanvas.getContext('2d'), ctx2 = processedCanvas.getContext('2d');
-            ctx1.clearRect(0, 0, originalCanvas.width, originalCanvas.height);
-            ctx2.clearRect(0, 0, processedCanvas.width, processedCanvas.height);
-            coverageBadge.textContent = '0%'; progressFill.style.width = '0%';
-            progressFill.style.background = 'linear-gradient(90deg, var(--accent), #81c784)';
-            totalPixelsEl.textContent = '0'; plantPixelsEl.textContent = '0';
-            nonPlantPixelsEl.textContent = '0'; coverageRatioEl.textContent = '0:1';
-            analysisModeEl.textContent = 'Green Detection'; analysisTimestampEl.textContent = '-';
-        }
-
-        function showError(message, type = 'error') {
-            errorMessage.textContent = message;
-            errorMessage.className = 'error-message active';
-            if (type === 'success') {
-                errorMessage.style.background = 'rgba(76, 175, 80, 0.1)';
-                errorMessage.style.border = '1px solid var(--accent)';
-                errorMessage.style.color = 'var(--accent)';
-                setTimeout(() => errorMessage.classList.remove('active'), 3000);
-            } else {
-                errorMessage.style.background = 'rgba(244, 67, 54, 0.1)';
-                errorMessage.style.border = '1px solid var(--error)';
-                errorMessage.style.color = 'var(--error)';
-            }
-            hideLoading();
-        }
-
-        function showLoading() { loadingOverlay.classList.add('active'); }
-        function hideLoading() { loadingOverlay.classList.remove('active'); }
-        function init() { initEventListeners(); console.log('CoverScope initialized'); }
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
+function I(){FU();FC();FL();console.log('CS init')}
+function FU(){FI.addEventListener('change',HU);[U,'dragover',DH],[U,'dragleave',DL],[U,'drop',DD],[U,'click',()=>FI.click()].forEach(([el,ev,fn])=>el.addEventListener(ev,fn))}
+function DH(e){e.preventDefault();e.stopPropagation();U.classList.add('drag-over')}
+function DL(e){e.preventDefault();e.stopPropagation();U.classList.remove('drag-over')}
+function DD(e){e.preventDefault();e.stopPropagation();U.classList.remove('drag-over');const f=e.dataTransfer.files;if(f&&f[0]&&f[0].type.startsWith('image/'))PI(f[0])}
+function HU(e){const f=e.target.files[0];if(f&&f.type.startsWith('image/'))PI(f);else SE('Invalid image')}
+function PI(f){CE();EM.classList.remove('active');const R=new FileReader();R.onload=function(e){const I=new Image();I.onload=()=>{S.original=I;DSI();U.style.display='none';IC.style.display='block';CS.style.display='block';SSM('Image loaded. Calibrate next.')};I.onerror=()=>SE('Load error');I.src=e.target.result};R.readAsDataURL(f)}
+function DSI(){const I=S.original,M=640,R=Math.min(M/I.width,M/I.height),W=Math.round(I.width*R),H=Math.round(I.height*R);const C=document.createElement('canvas');C.width=W;C.height=H;const X=C.getContext('2d');X.drawImage(I,0,0,W,H);S.working=new Image();S.working.src=C.toDataURL();S.working.onload=RI}
+function RI(){if(!S.working)return;const I=S.working,C=IMC,X=C.getContext('2d'),DW=I.width*S.zoom,DH=I.height*S.zoom;C.width=DW;C.height=DH;X.clearRect(0,0,C.width,C.height);X.save();X.scale(S.zoom,S.zoom);X.drawImage(I,S.offset.x/S.zoom,S.offset.y/S.zoom);X.restore();RO();RD()}
+function RO(){if(!S.working||!S.ana.on)return;const I=S.working,C=OC,X=C.getContext('2d'),DW=I.width*S.zoom,DH=I.height*S.zoom;C.width=DW;C.height=DH;if(!S.overlay){X.clearRect(0,0,C.width,C.height);return}X.clearRect(0,0,C.width,C.height);X.save();X.scale(S.zoom,S.zoom);const T=document.createElement('canvas');T.width=I.width;T.height=I.height;const TX=T.getContext('2d');TX.drawImage(I,0,0);const ID=TX.getImageData(0,0,I.width,I.height);const AD=ADI(ID);for(let y=0;y<AD.height;y++)for(let x=0;x<AD.width;x++){const i=(y*AD.width+x)*4,o=AD.data;const R=o[i],G=o[i+1],B=o[i+2];if(G>0){X.fillStyle=`rgba(76,175,80,${G/255*.5})`;X.fillRect(x,y,1,1)}else{X.fillStyle=`rgba(${R},${R},${R},.3)`;X.fillRect(x,y,1,1)}}}X.restore()}
+function ADI(ID){if(!S.working)return null;const I=S.working,W=I.width,H=I.height;let R={x:0,y:0,width:W,height:H};if(S.target.on&&S.target)R=S.target;else if(S.square.on&&S.square)R=S.square;const C=document.createElement('canvas');C.width=R.width;C.height=R.height;const X=C.getContext('2d');X.drawImage(I,R.x,R.y,R.width,R.height,0,0,R.width,R.height);const D=X.getImageData(0,0,R.width,R.height);const o=D.data,T=GT();for(let i=0;i<o.length;i+=4){const R=o[i],G=o[i+1],B=o[i+2],E=(2*G-R-B)/255,GD=G>R&&G>B;if(E>T&&GD){o[i]=0;o[i+1]=255;o[i+2]=0;o[i+3]=255}else{const Gr=.299*R+.587*G+.114*B;o[i]=o[i+1]=o[i+2]=Gr;o[i+3]=255}}return D}
+function GT(){return.05+(.2-.05)*(100-S.ana.sens)/100}
+function US(){S.ana.sens=parseInt(SS.value);SV.textContent=['Aggressive','Moderate','Conservative'][Math.floor(S.ana.sens/50)];if(S.ana.on)A()}
+function RD(){const C=DC,X=C.getContext('2d'),DW=S.working?S.working.width*S.zoom:0,DH=S.working?S.working.height*S.zoom:0;C.width=DW;C.height=DH;X.clearRect(0,0,C.width,C.height);if(!S.brush.on)return;X.save();X.scale(S.zoom,S.zoom);if(S.brushData){X.fillStyle='#4caf50';(S.brushData.add||[]).forEach(r=>X.fillRect(r.x,r.y,r.w,r.h));X.fillStyle='#1a1e1f';(S.brushData.erase||[]).forEach(r=>X.fillRect(r.x,r.y,r.w,r.h))}X.restore()}
+function RST(){if(!S.square.on||!S.working||!S.cal.mpp)return;ST.style.display='none';return;ST.style.display='block';ST.style.left=`${S.square.x*S.zoom+S.offset.x}px`;ST.style.top=`${S.square.y*S.zoom+S.offset.y}px`;ST.style.width=`${S.square.w*S.zoom}px`;ST.style.height=`${S.square.h*S.zoom}px`}
+function HD(e){e.preventDefault();if(S.cal.on){const R=IMC.getBoundingClientRect(),X=Math.round((e.clientX-R.left)/S.zoom),Y=Math.round((e.clientY-R.top)/S.zoom);if(X>=0&&X<S.working.width&&Y>=0&&Y<S.working.height){S.cal.points.push({x:X,y:Y});PCS.textContent=`${S.cal.points.length}/2`;if(S.cal.points.length==2)CC()}}else if(S.brush.on=='add'||S.brush.on=='erase'){const R=IMC.getBoundingClientRect(),X=Math.round((e.clientX-R.left)/S.zoom),Y=Math.round((e.clientY-R.top)/S.zoom);if(!S.brushData)S.brushData={add:[],erase:[]};S.drawing=true;S.lastP={x:X,y:Y}}else if(S.target.on){const R=IMC.getBoundingClientRect(),X=(e.clientX-R.left)/S.zoom,Y=(e.clientY-R.top)/S.zoom;if(!S.target)S.target={x:X,y:Y,w:0,h:0};S.target.drag=true;S.dragStart={x:X,y:Y}}else if(S.square.on){const R=IMC.getBoundingClientRect(),X=(e.clientX-R.left)/S.zoom,Y=(e.clientY-R.top)/S.zoom;S.square.drag=true;S.dragStart={x:X,y:Y};S.dragOff={x:X-S.square.x,y:Y-S.square.y}}else{S.pan.on=true;S.pan.start={x:e.clientX,y:e.clientY}}}
+function HM(e){e.preventDefault();if(S.pan.on){S.offset.x+=e.clientX-S.pan.start.x;S.offset.y+=e.clientY-S.pan.start.y;S.pan.start={x:e.clientX,y:e.clientY};RI()}else if(S.drawing){const R=IMC.getBoundingClientRect(),X=Math.round((e.clientX-R.left)/S.zoom),Y=Math.round((e.clientY-R.top)/S.zoom);const X1=S.lastP.x,Y1=S.lastP.y,minX=Math.min(X1,X),minY=Math.min(Y1,Y),maxX=Math.max(X1,X),maxY=Math.max(Y1,Y);const C=DC.getContext('2d');C.save();C.scale(S.zoom,S.zoom);C.lineWidth=S.brush.size;C.strokeStyle=S.brush.on=='add'?'#4caf50':'#1a1e1f';C.lineCap='round';C.beginPath();C.moveTo(S.lastP.x,S.lastP.y);C.lineTo(X,Y);C.stroke();C.restore();if(S.brush.on=='add')S.brushData.add.push({x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1});else S.brushData.erase.push({x:minX,y:minY,w:maxX-minX+1,h:maxY-minY+1});S.lastP={x:X,y:Y}}else if(S.target.drag&&S.target){const R=IMC.getBoundingClientRect(),X=Math.max(0,Math.min(S.working.width-1,Math.round((e.clientX-R.left)/S.zoom))),Y=Math.max(0,Math.min(S.working.height-1,Math.round((e.clientY-R.top)/S.zoom)));const W=Math.abs(X-S.dragStart.x),H=Math.abs(Y-S.dragStart.y),L=Math.min(S.dragStart.x,X),T=Math.min(S.dragStart.y,Y);S.target={x:L,y:T,w:W,h:H};RO()}else if(S.square.drag&&S.square){const R=IMC.getBoundingClientRect(),X=Math.max(0,Math.min(S.working.width-S.square.w,Math.round((e.clientX-R.left)/S.zoom))),Y=Math.max(0,Math.min(S.working.height-S.square.h,Math.round((e.clientY-R.top)/S.zoom)));S.square.x=X;S.square.y=Y;RST()}}
+function HU2(e){e.preventDefault();S.pan.on=false;S.drawing=false;S.target.drag=false;S.square.drag=false;if(S.ana.on&&(S.drawing||S.target.drag||S.square.drag))A()}
+function HW(e){e.preventDefault();const D=e.deltaY>0?-.1:.1,N=Math.max(S.minZ,Math.min(S.maxZ,S.zoom+D));if(N!==S.zoom){const R=IMC.getBoundingClientRect(),MX=(e.clientX-R.left)/S.zoom,MY=(e.clientY-R.top)/S.zoom;S.offset.x-=MX*(N-S.zoom);S.offset.y-=MY*(N-S.zoom);S.zoom=N;RI()}}
+function TC(e){e.preventDefault();const t=e.touches[0];HD({clientX:t.clientX,clientY:t.clientY,preventDefault:()=>{}})}
+function TM(e){e.preventDefault();const t=e.touches[0];HM({clientX:t.clientX,clientY:t.clientY,preventDefault:()=>{}})}
+function TE(e){e.preventDefault();HU2({preventDefault:()=>{}})}
+function KD(e){if(e.code=='Space'&&S.ana.on){e.preventDefault();TO()}if(e.code=='Delete'||e.code=='Backspace')CE()}
+function SC(){S.cal.on=true;S.cal.points=[];PCS.textContent='0/2';PCI.style.display='block';SCB.style.display='none';CCB.style.display='inline-block';SSM('Tap 2 points of known distance')}
+function CC(){if(S.cal.points.length<2){SE('Need 2 points');return}const D=parseFloat(CDI.value);if(isNaN(D)||D<=0){SE('Enter valid distance');return}const P1=S.cal.points[0],P2=S.cal.points[1],PD=Math.sqrt(Math.pow(P2.x-P1.x,2)+Math.pow(P2.y-P1.y,2));S.cal.dist=D;S.cal.unit=CUN.value;const DI=S.cal.unit=='m'?D:D*.3048;S.cal.mpp=DI/PD;S.cal.on=false;CSB.textContent=`Calibrated: ${D} ${S.cal.unit}`;CSB.style.display='inline-block';PCI.style.display='none';SCB.style.display='inline-block';CCB.style.display='inline-block';ANB.disabled=false;SSM('Scale calibrated! Now analyze.')}
+function ClC(){S.cal.on=false;S.cal.points=[];S.cal.dist=null;S.cal.mpp=null;PCS.textContent='0/2';PCI.style.display='none';SCB.style.display='inline-block';CCB.style.display='none';CSB.style.display='none';CDI.value='';ANB.disabled=true;PA.textContent='0 m²';TA.textContent='0 m²';RO()}
+function TT(){S.target.on=!S.target.on;S.square.on=false;S.volume.on=false;TBTN.classList.toggle('active',S.target.on);SBTN.classList.remove('active');VBTN.classList.remove('active');if(S.target.on){if(!S.target)S.target={x:50,y:50,w:200,h:200};SSM('Drag to resize target')}else S.target=null;if(S.ana.on)A()}
+function TS(){if(!S.cal.mpp){SE('Calibrate first');S.square.on=false;SBTN.classList.remove('active');return}S.square.on=!S.square.on;S.target.on=false;S.volume.on=false;SBTN.classList.toggle('active',S.square.on);TBTN.classList.remove('active');VBTN.classList.remove('active');if(S.square.on){if(!S.square){const PP=1/S.cal.mpp,SZ=PP;S.square={x:(S.working.width-SZ)/2,y:(S.working.height-SZ)/2,w:SZ,h:SZ}}VS.style.display='block';RST();SSM('Drag to position square')}else{S.square=null;VS.style.display='none';VR.style.display='none';RST()};if(S.ana.on)A()}
+function TV(){S.volume.on=!S.volume.on;VBTN.classList.toggle('active',S.volume.on);if(S.volume.on&&!S.square.on)TS()}
+function SB(m){S.brush.on=m;ABTN.classList.remove('active');EBTN.classList.remove('active');if(m=='add'){ABTN.classList.add('active');BBTN.textContent='✏️ Brush: Add'}else if(m=='erase'){EBTN.classList.add('active');BBTN.textContent='✏️ Brush: Erase'}else{BBTN.textContent='✏️ Brush: Off'}BC.classList.toggle('active',m!='off')}
+function UB(){S.brush.size=parseInt(BS.value);BSV.textContent=S.brush.size+'px'}
+function TO(){S.overlay=!S.overlay;TOB.textContent=S.overlay?'👁️ Toggle Overlay':'👁️‍🗨 Show Overlay';RO()}
+function A(){if(!S.working){SE('Upload image first');return}if(!S.cal.mpp&&S.target.on==false){SE('Calibrate for area');return}SL();setTimeout(()=>{try{P();HL();}catch(e){HL();SE('Analysis failed: '+e.message)}},100)}
+function P(){const I=S.working,W=I.width,H=I.height;let R={x:0,y:0,width:W,height:H};if(S.target.on&&S.target)R=S.target;else if(S.square.on&&S.square)R=S.square;const C=document.createElement('canvas');C.width=R.width;C.height=R.height;const X=C.getContext('2d');X.drawImage(I,R.x,R.y,R.width,R.height,0,0,R.width,R.height);const ID=X.getImageData(0,0,R.width,R.height);const o=ID.data,T=GT(),TC=R.width*R.height;let PC=0,TS=0,TV=0;for(let i=0;i<o.length;i+=4){const R=o[i],G=o[i+1],B=o[i+2],E=(2*G-R-B)/255,GD=G>R&&G>B;if(E>T&&GD){PC++;const Mx=Math.max(R,G,B),Mn=Math.min(R,G,B),D2=Mx-Mn;let S2=D2==0?0:D2/(1-Math.abs(2*(Mx/255)-1));S2=Math.max(0,Math.min(1,S2));TS+=S2;TV+=G/255}o[i]=E>T&&GD?0:Math.max(R,G,B);o[i+1]=E>T&&GD?255:Math.max(R,G,B);o[i+2]=E>T&&GD?0:Math.max(R,G,B);o[i+3]=255}S.ana.pixels=PC;S.ana.total=TC;S.ana.cov=Math.round((PC/TC)*10000)/100;S.ana.health=PC>0?Math.round(((TS/PC)+(TV/PC))/2*100):0;if(S.cal.mpp){const S2=S.cal.unit=='m'?1:1/.3048,MP=S.cal.mpp*S2;S.ana.area=Math.round(PC*Math.pow(MP,2)*100)/100;S.ana.tarea=Math.round(TC*Math.pow(MP,2)*100)/100;PA.textContent=`${S.ana.area} ${S.cal.unit}²`;TA.textContent=`${S.ana.tarea} ${S.cal.unit}²`}else{PA.textContent='0 m²';TA.textContent='0 m²'}CP.textContent=S.ana.cov+'%';HI.textContent=S.ana.health+'%';S.ana.on=true;ASN.style.display='inline-block';ANB.disabled=false;TOB.disabled=false;SAVB.disabled=false;RS.style.display='block';AS.style.display='block';RO();SSM('Analysis complete!')}
+function SAVE(){if(!S.ana.on){SE('Analyze first');return}const M={id:Date.now(),name:`M${S.measures.length+1}`,timestamp:new Date().toISOString(),cov:S.ana.cov,px:S.ana.pixels,tpx:S.ana.total,area:S.ana.area,tarea:S.ana.tarea,health:S.ana.health,cal:S.cal.mpp?{dist:S.cal.dist,unit:S.cal.unit,mpp:S.cal.mpp}:null,sens:S.ana.sens,region:S.target.on?'target':S.square.on?'square':'full'};S.measures.unshift(M);localStorage.setItem('cs_measures',JSON.stringify(S.measures));SSM('Saved!');RH();CE2()}
+function FL(){const S2=localStorage.getItem('cs_measures');if(S2)S.measures=JSON.parse(S2);RH()}
+function RH(){if(!S.measures.length){HL.innerHTML='<div class="empty-state"><div class="empty-state-icon">📜</div><h3>No Measurements</h3><p>Analyze and save to see here.</p></div>';CC.style.display='none';return}let H='';S.measures.forEach((M,i)=>{const D=new Date(M.timestamp),SC=S.sel.includes(M.id);H+=`<div class="history-card"><div class="history-card-hdr"><input type="checkbox" id="s-${M.id}" onchange="TS(${M.id})" ${SC?'checked':''} style="margin-right:10px"><div class="history-card-title" contenteditable onblur="RN(${M.id},this.textContent)">${M.name}</div></div><div class="history-card-date">${D.toLocaleDateString()} ${D.toLocaleTimeString()}</div><div class="history-stats"><div class="history-stat"><div class="history-stat-value">${M.cov}%</div><div class="history-stat-lbl">Coverage</div></div><div class="history-stat"><div class="history-stat-value">${M.area||'0 m²'}</div><div class="history-stat-lbl">Area</div></div><div class="history-stat"><div class="history-stat-value">${M.health}%</div><div class="history-stat-lbl">Health</div></div></div></div>`});HL.innerHTML=H;if(S.sel.length>=2)CC.style.display='block'}
+function TS(id){const I=S.sel.indexOf(id);if(I>-1)S.sel.splice(I,1);else S.sel.push(id);if(S.sel.length>=2)CC.style.display='block';else CH.style.display='none'}
+function RN(id,n){const M=S.measures.find(M=>M.id==id);if(M){M.name=n;localStorage.setItem('cs_measures',JSON.stringify(S.measures))}}
+function CS2(){S.sel=[];RH();CH.style.display='none';CC.style.display='none'}
+function DC2(){const SL=S.measures.filter(M=>S.sel.includes(M.id));if(SL.length<2){SE('Select >=2');return}SL.sort((A,B)=>new Date(A.timestamp)-new Date(B.timestamp));let H='',MC=0;SL.forEach(M=>{MC=Math.max(MC,M.cov)});SL.forEach(M=>{const D=new Date(M.timestamp),BW=(M.cov/MC)*100;H+=`<div class="compare-bar"><div class="compare-bar-lbl">${M.name} (${D.toLocaleDateString()})</div><div class="bar-ctr"><div class="bar-fill" style="width:${BW}%" title="${M.cov}%"></div><div class="bar-value">${M.cov}%</div></div></div>`});CB.innerHTML=H;CH.style.display='block'}
+function EEX(){const SL=S.measures.filter(M=>S.sel.includes(M.id));if(!SL.length)return;const WB=XLSX.utils.book_new(),D=[['Measurement','Date','Coverage %','Plant Area','Health']];SL.forEach(M=>{D.push([M.name,new Date(M.timestamp).toLocaleString(),M.cov+'%',M.area||'N/A',M.health+'%'])});const WS=XLSX.utils.aoa_to_sheet(D);XLSX.utils.book_append_sheet(WB,WS,'Comparison');XLSX.writeFile(WB,`CS-Compare-${new Date().toISOString().split('T')[0]}.xlsx`)}
+function EPF(){const{jsPDF}=window.jspdf,doc=new jsPDF();const SL=S.measures.filter(M=>S.sel.includes(M.id));if(!SL.length)return;doc.setFontSize(18);doc.text('CoverScope Comparison',105,20,{align:'center'});doc.setFontSize(12);doc.text(new Date().toLocaleDateString(),105,30,{align:'center'});let Y=40;doc.setFontSize(10);doc.text(['Measurement','Date','Coverage','Health'].join(', '),10,Y);Y+=10;SL.forEach(M=>{const D=new Date(M.timestamp).toLocaleDateString();doc.text([M.name,D,M.cov+'%',M.health+'%'].join(', '),10,Y);Y+=10});doc.save(`CS-Compare-${new Date().toISOString().split('T')[0]}.pdf`)}
+function CE(){S.original=null;S.working=null;S.imgScale=1;S.offset={x:0,y:0};S.zoom=1;S.cal={on:false,points:[],dist:null,unit:'m',mpp:null};S.ana={on:false,sens:50,pixels:0,total:0,cov:0,area:0,tarea:0,health:0};S.target={on:false};S.square={on:false};S.volume={on:false};S.brush={on:'off',size:10,mode:'off',data:null};S.overlay=true;U.style.display='block';IC.style.display='none';CS.style.display='none';AS.style.display='none';RS.style.display='none';VS.style.display='none';CSB.style.display='none';PCI.style.display='none';SCB.style.display='inline-block';CCB.style.display='none';CDI.value='';ANB.disabled=true;TOB.disabled=true;SAVB.disabled=true;CP.textContent='0%';PA.textContent='0 m²';TA.textContent='0 m²';HI.textContent='0%';SB('off');BC.classList.remove('active');const C1=IMC.getContext('2d'),C2=OC.getContext('2d'),C3=DC.getContext('2d');[C1,C2,C3].forEach(C=>C.clearRect(0,0,C.canvas.width,C.canvas.height))}
+function CE2(){S.ana.on=false;S.ana.pixels=0;S.ana.total=0;S.ana.cov=0;S.ana.area=0;S.ana.tarea=0;S.ana.health=0;ASN.style.display='none';ANB.disabled=true;TOB.disabled=true;SAVB.disabled=true;CP.textContent='0%';PA.textContent='0 m²';TA.textContent='0 m²';HI.textContent='0%'}
+function SL(){LO.classList.add('active')}
+function HL(){LO.classList.remove('active')}
+function SE(M){EM.textContent=M;EM.classList.add('active');setTimeout(()=>EM.classList.remove('active'),5000)}
+function SSM(M){EM.textContent=M;EM.className='msg succ-msg active';setTimeout(()=>EM.classList.remove('active'),3000)}
+function O(){MODAL.classList.add('active')}
+function C(){MODAL.classList.remove('active')}
+function ZI(){const N=Math.min(S.maxZ,S.zoom*1.2);if(N!==S.zoom){const R=IMC.getBoundingClientRect(),MX=(window.innerWidth/2-R.left)/S.zoom,MY=(window.innerHeight/2-R.top)/S.zoom;S.offset.x-=MX*(N-S.zoom);S.offset.y-=MY*(N-S.zoom);S.zoom=N;RI()}}
+function ZO(){const N=Math.max(S.minZ,S.zoom/1.2);if(N!==S.zoom){S.zoom=N;RI()}}
+function RV(){S.zoom=1;S.offset={x:0,y:0};RI()}
+function VC(){const H=[parseFloat(document.getElementById('hNW').value)||0,parseFloat(document.getElementById('hNE').value)||0,parseFloat(document.getElementById('hSE').value)||0,parseFloat(document.getElementById('hSW').value)||0,parseFloat(document.getElementById('hC').value)||0];const AH=H.reduce((A,B)=>A+B,0)/H.length,CV=parseFloat(CP.textContent)/100,V=AH*CV*1;VV.textContent=V.toFixed(2)+' m³';VR.style.display='block'}
+function VC2(){VR.style.display='none'}
+function openMethods(){O()}
+function closeModal(){C()}
+function volChanged(){VC2()}
+document.addEventListener('DOMContentLoaded',I);
+document.addEventListener('keydown',KD);
+[IMC,'mousedown',HD],[IMC,'mousemove',HM],[IMC,'mouseup',HU2],[IMC,'mouseleave',HU2],[IMC,'wheel',HW],[IW,'touchstart',TC],[IW,'touchmove',TM],[IW,'touchend',TE].forEach(([E,T,F])=>E.addEventListener(T,F));
+</script>
 </body>
 </html>
