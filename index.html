@@ -219,8 +219,6 @@ header{
 .img-wrap.grabbing{cursor: grabbing;}
 
 #imageCanvas{
-  display: block;
-  max-width: 100%;
   background: #111;
   border-radius: var(--radius-sm);
 }
@@ -1466,6 +1464,9 @@ function renderImage() {
   [IMC, OC, DC].forEach(c => { c.width = DW; c.height = DH; });
   // FIX: Set CSS dimensions to match bitmap dimensions to prevent scaling
   [IMC, OC, DC].forEach(c => { c.style.width = DW + 'px'; c.style.height = DH + 'px'; });
+  // Also set parent container dimensions to prevent overflow issues
+  IW.style.width = DW + 'px';
+  IW.style.height = DH + 'px';
   const X = IMC.getContext('2d');
   X.clearRect(0, 0, DW, DH);
   X.save();
