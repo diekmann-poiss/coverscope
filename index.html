@@ -1470,7 +1470,8 @@ function renderImage() {
   const X = IMC.getContext('2d');
   X.clearRect(0, 0, DW, DH);
   X.save();
-  X.translate(S.offset.x, S.offset.y);
+  // CORRECT: Translate by -offset to pan the image (offset.x is how much we've panned right)
+  X.translate(-S.offset.x, -S.offset.y);
   X.scale(S.zoom, S.zoom);
   X.drawImage(I, 0, 0);
   X.restore();
@@ -1515,7 +1516,8 @@ function renderOverlay() {
   const d = ID.data;
 
   X.save();
-  X.translate(S.offset.x, S.offset.y);
+  // CORRECT: Translate by -offset to match renderImage()
+  X.translate(-S.offset.x, -S.offset.y);
   X.scale(S.zoom, S.zoom);
 
   // Enhanced plant recognition with HSV color space
@@ -1597,7 +1599,8 @@ function renderDrawing() {
   X.clearRect(0, 0, C.width, C.height);
   if (!S.brushData) return;
   X.save();
-  X.translate(S.offset.x, S.offset.y);
+  // CORRECT: Translate by -offset to match renderImage()
+  X.translate(-S.offset.x, -S.offset.y);
   X.scale(S.zoom, S.zoom);
   X.lineCap = 'round';
   X.lineJoin = 'round';
@@ -1625,8 +1628,10 @@ function renderSquareTool() {
   if (!S.square.on || !S.working) { ST.style.display = 'none'; return; }
   ST.style.display = 'block';
   const ox = S.offset.x, oy = S.offset.y, z = S.zoom;
-  ST.style.left   = (S.square.x * z + ox) + 'px';
-  ST.style.top    = (S.square.y * z + oy) + 'px';
+  // CORRECT: with new translation convention (translate by -offset)
+  // Canvas position = (square.x - offset.x) * zoom
+  ST.style.left   = (S.square.x - ox) * z + 'px';
+  ST.style.top    = (S.square.y - oy) * z + 'px';
   ST.style.width  = (S.square.w * z) + 'px';
   ST.style.height = (S.square.h * z) + 'px';
 }
@@ -1635,40 +1640,45 @@ function renderTargetOverlay() {
   if (!S.target.on || !S.working) return;
   const X = OC.getContext('2d');
   const ox = S.offset.x, oy = S.offset.y, z = S.zoom;
+  const I = S.working;
+  const DW = I.width * z, DH = I.height * z;
   
   X.save();
+  // CORRECT: Translate by -offset to match renderImage() convention
+  X.translate(-ox, -oy);
+  X.scale(z, z);
   
-  // dim outside target
+  // dim outside target - draw in image coordinates
   X.fillStyle = 'rgba(0,0,0,0.5)';
   // top
-  X.fillRect(0, 0, OC.width, S.target.y * z + oy);
+  X.fillRect(0, 0, I.width, S.target.y);
   // bottom
-  X.fillRect(0, (S.target.y + S.target.h) * z + oy, OC.width, OC.height);
+  X.fillRect(0, S.target.y + S.target.h, I.width, I.height - (S.target.y + S.target.h));
   // left
-  X.fillRect(0, S.target.y * z + oy, S.target.x * z + ox, S.target.h * z);
+  X.fillRect(0, S.target.y, S.target.x, S.target.h);
   // right
-  X.fillRect((S.target.x + S.target.w) * z + ox, S.target.y * z + oy, OC.width, S.target.h * z);
+  X.fillRect(S.target.x + S.target.w, S.target.y, I.width - (S.target.x + S.target.w), S.target.h);
   
   // Draw target rectangle with semi-transparent fill
   X.fillStyle = 'rgba(16, 185, 129, 0.15)';
-  X.fillRect(S.target.x * z + ox, S.target.y * z + oy, S.target.w * z, S.target.h * z);
+  X.fillRect(S.target.x, S.target.y, S.target.w, S.target.h);
   
   // border
   X.strokeStyle = 'rgba(16, 185, 129, 1)';
-  X.lineWidth = 3;
-  X.strokeRect(S.target.x * z + ox, S.target.y * z + oy, S.target.w * z, S.target.h * z);
+  X.lineWidth = 3 / z; // Scale line width inversely to maintain visual thickness
+  X.strokeRect(S.target.x, S.target.y, S.target.w, S.target.h);
   
   // Draw corner handles for better UX
-  const handleSize = 8;
+  const handleSize = 8 / z; // Scale handle size inversely
   X.fillStyle = 'rgba(16, 185, 129, 0.8)';
   // Top-left
-  X.fillRect(S.target.x * z + ox - handleSize/2, S.target.y * z + oy - handleSize/2, handleSize, handleSize);
+  X.fillRect(S.target.x - handleSize/2, S.target.y - handleSize/2, handleSize, handleSize);
   // Top-right
-  X.fillRect((S.target.x + S.target.w) * z + ox - handleSize/2, S.target.y * z + oy - handleSize/2, handleSize, handleSize);
+  X.fillRect((S.target.x + S.target.w) - handleSize/2, S.target.y - handleSize/2, handleSize, handleSize);
   // Bottom-left
-  X.fillRect(S.target.x * z + ox - handleSize/2, (S.target.y + S.target.h) * z + oy - handleSize/2, handleSize, handleSize);
+  X.fillRect(S.target.x - handleSize/2, (S.target.y + S.target.h) - handleSize/2, handleSize, handleSize);
   // Bottom-right
-  X.fillRect((S.target.x + S.target.w) * z + ox - handleSize/2, (S.target.y + S.target.h) * z + oy - handleSize/2, handleSize, handleSize);
+  X.fillRect((S.target.x + S.target.w) - handleSize/2, (S.target.y + S.target.h) - handleSize/2, handleSize, handleSize);
   
   X.restore();
 }
@@ -1829,9 +1839,11 @@ function updateBrush() {
 // ─── Pointer helpers ──────────────────────────────────────────────────────────
 function canvasXY(e) {
   const R = IMC.getBoundingClientRect();
+  // Correct transformation: in rendering we do translate(offset) then scale(zoom)
+  // So reverse is: (mouse - rect) / zoom - offset
   return {
-    x: (e.clientX - R.left - S.offset.x) / S.zoom,
-    y: (e.clientY - R.top  - S.offset.y) / S.zoom
+    x: (e.clientX - R.left) / S.zoom - S.offset.x,
+    y: (e.clientY - R.top)  / S.zoom - S.offset.y
   };
 }
 
@@ -1861,12 +1873,19 @@ function handleMouseDown(e) {
     const X = OC.getContext('2d');
     X.clearRect(0, 0, OC.width, OC.height);
     
+    const z = S.zoom, ox = S.offset.x, oy = S.offset.y;
+    
+    X.save();
+    // CORRECT: Translate by -offset to match renderImage() convention
+    X.translate(-ox, -oy);
+    X.scale(z, z);
+    
     // Draw first point
     if (S.cal.points.length >= 1) {
       const p1 = S.cal.points[0];
       X.fillStyle = '#10b981';
       X.beginPath();
-      X.arc(p1.x * S.zoom + S.offset.x, p1.y * S.zoom + S.offset.y, 5, 0, Math.PI*2);
+      X.arc(p1.x, p1.y, 5/z, 0, Math.PI*2);
       X.fill();
     }
     
@@ -1877,29 +1896,33 @@ function handleMouseDown(e) {
       
       // Draw second point
       X.beginPath();
-      X.arc(p2.x * S.zoom + S.offset.x, p2.y * S.zoom + S.offset.y, 5, 0, Math.PI*2);
+      X.arc(p2.x, p2.y, 5/z, 0, Math.PI*2);
       X.fill();
       
       // Draw line between points (thicker and more visible)
       X.strokeStyle = '#10b981';
-      X.lineWidth = 3;
+      X.lineWidth = 3/z;
       X.beginPath();
-      X.moveTo(p1.x * S.zoom + S.offset.x, p1.y * S.zoom + S.offset.y);
-      X.lineTo(p2.x * S.zoom + S.offset.x, p2.y * S.zoom + S.offset.y);
+      X.moveTo(p1.x, p1.y);
+      X.lineTo(p2.x, p2.y);
       X.stroke();
       
+      X.restore();
       completeCalibration();
     } else if (S.cal.points.length === 1) {
       // Show the line being drawn (from first point to current mouse position)
       const p1 = S.cal.points[0];
       X.strokeStyle = '#10b981';
-      X.lineWidth = 2;
-      X.setLineDash([5, 5]);
+      X.lineWidth = 2/z;
+      X.setLineDash([5/z, 5/z]);
       X.beginPath();
-      X.moveTo(p1.x * S.zoom + S.offset.x, p1.y * S.zoom + S.offset.y);
-      X.lineTo(pt.x * S.zoom + S.offset.x, pt.y * S.zoom + S.offset.y);
+      X.moveTo(p1.x, p1.y);
+      X.lineTo(pt.x, pt.y);
       X.stroke();
       X.setLineDash([]);
+      X.restore();
+    } else {
+      X.restore();
     }
     return;
   }
@@ -1950,25 +1973,36 @@ function handleMouseMove(e) {
     const X = OC.getContext('2d');
     X.clearRect(0, 0, OC.width, OC.height);
     const p1 = S.cal.points[0];
+    const z = S.zoom, ox = S.offset.x, oy = S.offset.y;
+    
+    X.save();
+    // CORRECT: Translate by -offset to match renderImage() convention
+    X.translate(-ox, -oy);
+    X.scale(z, z);
+    
     X.fillStyle = '#10b981';
     X.beginPath();
-    X.arc(p1.x * S.zoom + S.offset.x, p1.y * S.zoom + S.offset.y, 5, 0, Math.PI*2);
+    X.arc(p1.x, p1.y, 5/z, 0, Math.PI*2);
     X.fill();
     X.strokeStyle = '#10b981';
-    X.lineWidth = 2;
-    X.setLineDash([5, 5]);
+    X.lineWidth = 2/z;
+    X.setLineDash([5/z, 5/z]);
     X.beginPath();
-    X.moveTo(p1.x * S.zoom + S.offset.x, p1.y * S.zoom + S.offset.y);
-    X.lineTo(pt.x * S.zoom + S.offset.x, pt.y * S.zoom + S.offset.y);
+    X.moveTo(p1.x, p1.y);
+    X.lineTo(pt.x, pt.y);
     X.stroke();
     X.setLineDash([]);
+    X.restore();
     if (S.ana.on && S.overlay) renderOverlay();
     return;
   }
 
   if (S.pan.on) {
-    S.offset.x += e.clientX - S.pan.start.x;
-    S.offset.y += e.clientY - S.pan.start.y;
+    // Convert client delta to image coordinate delta
+    // Note: offset.x increases when panning RIGHT, so we ADD to move image left
+    S.offset.x += (e.clientX - S.pan.start.x) / S.zoom;
+    S.offset.y += (e.clientY - S.pan.start.y) / S.zoom;
+    clampOffset();
     S.pan.start = {x: e.clientX, y: e.clientY};
     renderImage();
     return;
@@ -2020,20 +2054,46 @@ function handleMouseUp(e) {
   if (S.ana.on && (wasDrawing || wasDragging)) analyze();
 }
 
+function clampOffset() {
+  if (!S.working) return;
+  const I = S.working;
+  // Calculate max offset based on zoom
+  // When zoomed in, we can pan but not beyond the image edges
+  const maxOx = Math.max(0, (I.width * S.zoom - I.width) / 2);
+  const maxOy = Math.max(0, (I.height * S.zoom - I.height) / 2);
+  // Actually, offset can be negative or positive to pan in any direction
+  // The limit is: we can't pan so much that we show empty space beyond the image
+  // For horizontal: offset.x should be between -maxPanX and maxPanX
+  const maxPanX = (I.width * S.zoom - I.width) / 2;
+  const maxPanY = (I.height * S.zoom - I.height) / 2;
+  S.offset.x = Math.max(-maxPanX, Math.min(maxPanX, S.offset.x));
+  S.offset.y = Math.max(-maxPanY, Math.min(maxPanY, S.offset.y));
+}
+
 function handleWheel(e) {
   e.preventDefault();
   const delta = e.deltaY > 0 ? -0.1 : 0.1;
   let N = S.zoom + delta;
+  
+  // Don't allow zoom out when at full frame (zoom=1, offset=0)
+  // This prevents zooming out beyond the full image
+  if (N < S.zoom && S.zoom <= 1.01 && Math.abs(S.offset.x) < 0.01 && Math.abs(S.offset.y) < 0.01) {
+    return;
+  }
   
   // Clamp zoom to valid range (1.0 to maxZ)
   N = Math.max(1, Math.min(S.maxZ, N));
   
   if (N !== S.zoom) {
     const R = IMC.getBoundingClientRect();
-    const mx = e.clientX - R.left, my = e.clientY - R.top;
-    S.offset.x = mx - (mx - S.offset.x) * (N / S.zoom);
-    S.offset.y = my - (my - S.offset.y) * (N / S.zoom);
+    const mx = e.clientX - R.left;
+    const my = e.clientY - R.top;
+    // Correct formula: zoom toward mouse position
+    // new_offset = old_offset + mouse_css * (1/N - 1/oldZoom)
+    S.offset.x += mx * (1/N - 1/S.zoom);
+    S.offset.y += my * (1/N - 1/S.zoom);
     S.zoom = N;
+    clampOffset();
     renderImage();
   }
 }
