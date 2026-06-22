@@ -1103,7 +1103,7 @@ footer a:hover{
 <div class="cal-ctrls">
 <div class="cal-inpgrp">
 <input type="number" id="calDist" class="cal-inp" placeholder="Enter distance" step="0.01" min="0.01">
-<select id="calUnit" class="unit-sel"><option value="m">m</option><option value="ft">ft</option></select>
+<select id="calUnit" class="unit-sel"><option value="cm">cm</option><option value="m">m</option></select>
 </div>
 <button class="btn btn-p" id="startCalBtn" onclick="startCal()">Start Calibration</button>
 <button class="btn btn-s" id="clearCalBtn" onclick="clearCal()" style="display:none">Clear</button>
@@ -1238,8 +1238,8 @@ footer a:hover{
 // ─── State ───────────────────────────────────────────────────────────────────
 const S = {
   original: null, working: null,
-  offset: {x:0,y:0}, zoom: 1, maxZ: 4, minZ: .25,
-  cal: {on:false, points:[], dist:null, unit:'m', mpp:null},
+  offset: {x:0,y:0}, zoom: 1, maxZ: 4, minZ: 1,
+  cal: {on:false, points:[], dist:null, unit:'cm', mpp:null},
   ana: {on:false, sens:50, pixels:0, total:0, cov:0, area:0, tarea:0, health:0},
   target: {on:false, x:0, y:0, w:0, h:0, drag:false},
   square: {on:false, x:0, y:0, w:100, h:100, drag:false},
@@ -1416,27 +1416,51 @@ function renderOverlay() {
   X.translate(S.offset.x, S.offset.y);
   X.scale(S.zoom, S.zoom);
 
-  // Enhanced plant recognition - similar to whacka.app
+  // Enhanced plant recognition
   for (let y = 0; y < I.height; y++) {
     for (let x = 0; x < I.width; x++) {
       const i = (y * I.width + x) * 4;
       const r = d[i], g = d[i+1], b = d[i+2];
+      const brightness = (r + g + b) / 3;
+      
+      // Skip very dark pixels (likely shadows or black)
+      if (brightness < 15) {
+        X.fillStyle = 'rgba(0,0,0,0.35)';
+        X.fillRect(x, y, 1, 1);
+        continue;
+      }
       
       // Calculate multiple vegetation indices
       const exG = (2*g - r - b) / 255;
+      const exG_norm = (2*g - r - b); // Non-normalized
       const ndvi = (g - r) / (g + r + 1);
       const greenRatio = g / (r + b + 1);
       const enhanced = exG * greenRatio;
       const GD = g > r && g > b;
       
-      // Adaptive threshold with enhanced detection
-      const threshold = T * (1 + (255 - (r + g + b) / 3) / 255 * 0.3);
+      // Additional indices
+      const cive = (g - r) / (g + r + b) + 0.5;
       
-      // Use enhanced detection logic
-      const isPlant = (enhanced > T && GD) || (exG > T * 0.8 && GD && g > 100);
+      // Check if green is significantly higher than both red and blue
+      const greenDominance = GD && (g - r) > 10 && (g - b) > 10;
+      
+      // Dynamic threshold based on image brightness
+      const baseThreshold = T;
+      const brightnessFactor = Math.min(1.5, Math.max(0.5, 1 + (255 - brightness) / 255 * 0.5));
+      const effectiveThreshold = baseThreshold * brightnessFactor;
+      
+      // Primary condition: enhanced index above threshold with green dominance
+      let isPlant = (enhanced > effectiveThreshold && greenDominance);
+      
+      // Secondary conditions for edge cases
+      isPlant = isPlant || 
+                (exG > effectiveThreshold * 0.7 && greenDominance && g > 80) ||
+                (exG_norm > 20 && greenDominance && brightness > 30) ||
+                (cive > 0.55 && GD && g > 100) ||
+                (ndvi > 0.25 && GD && brightness > 40);
       
       if (isPlant) {
-        X.fillStyle = 'rgba(76,175,80,0.55)';
+        X.fillStyle = 'rgba(16, 185, 129, 0.55)';
       } else {
         X.fillStyle = 'rgba(0,0,0,0.35)';
       }
@@ -1490,9 +1514,11 @@ function renderTargetOverlay() {
   if (!S.target.on || !S.working) return;
   const X = OC.getContext('2d');
   const ox = S.offset.x, oy = S.offset.y, z = S.zoom;
-  // dim outside target
+  
   X.save();
-  X.fillStyle = 'rgba(0,0,0,0.4)';
+  
+  // dim outside target
+  X.fillStyle = 'rgba(0,0,0,0.5)';
   // top
   X.fillRect(0, 0, OC.width, S.target.y * z + oy);
   // bottom
@@ -1501,10 +1527,28 @@ function renderTargetOverlay() {
   X.fillRect(0, S.target.y * z + oy, S.target.x * z + ox, S.target.h * z);
   // right
   X.fillRect((S.target.x + S.target.w) * z + ox, S.target.y * z + oy, OC.width, S.target.h * z);
+  
+  // Draw target rectangle with semi-transparent fill
+  X.fillStyle = 'rgba(16, 185, 129, 0.15)';
+  X.fillRect(S.target.x * z + ox, S.target.y * z + oy, S.target.w * z, S.target.h * z);
+  
   // border
-  X.strokeStyle = 'rgba(76,175,80,0.9)';
-  X.lineWidth = 2;
+  X.strokeStyle = 'rgba(16, 185, 129, 1)';
+  X.lineWidth = 3;
   X.strokeRect(S.target.x * z + ox, S.target.y * z + oy, S.target.w * z, S.target.h * z);
+  
+  // Draw corner handles for better UX
+  const handleSize = 8;
+  X.fillStyle = 'rgba(16, 185, 129, 0.8)';
+  // Top-left
+  X.fillRect(S.target.x * z + ox - handleSize/2, S.target.y * z + oy - handleSize/2, handleSize, handleSize);
+  // Top-right
+  X.fillRect((S.target.x + S.target.w) * z + ox - handleSize/2, S.target.y * z + oy - handleSize/2, handleSize, handleSize);
+  // Bottom-left
+  X.fillRect(S.target.x * z + ox - handleSize/2, (S.target.y + S.target.h) * z + oy - handleSize/2, handleSize, handleSize);
+  // Bottom-right
+  X.fillRect((S.target.x + S.target.w) * z + ox - handleSize/2, (S.target.y + S.target.h) * z + oy - handleSize/2, handleSize, handleSize);
+  
   X.restore();
 }
 
@@ -1529,11 +1573,42 @@ function completeCalibration() {
     return;
   }
   const P1 = S.cal.points[0], P2 = S.cal.points[1];
-  const PD = Math.sqrt(Math.pow(P2.x - P1.x, 2) + Math.pow(P2.y - P1.y, 2));
-  if (PD < 2) { showError('Points too close — try again.'); S.cal.points = []; S.cal.on = true; PCS.textContent = '0/2'; return; }
+  
+  // Check if line is vertical or horizontal (within tolerance)
+  const dx = Math.abs(P2.x - P1.x);
+  const dy = Math.abs(P2.y - P1.y);
+  const tolerance = 5; // pixels
+  
+  if (dx < tolerance && dy < tolerance) {
+    showError('Points too close — try again.');
+    S.cal.points = []; S.cal.on = true; PCS.textContent = '0/2';
+    return;
+  }
+  
+  // Only allow mostly vertical or mostly horizontal
+  const isHorizontal = dy < dx * 0.3; // Allow slight vertical deviation
+  const isVertical = dx < dy * 0.3;   // Allow slight horizontal deviation
+  
+  if (!isHorizontal && !isVertical) {
+    showError('Please draw a straight vertical or horizontal line only.');
+    S.cal.points = []; S.cal.on = true; PCS.textContent = '0/2';
+    // Clear the line that was drawn
+    renderImage();
+    return;
+  }
+  
+  const PD = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
   S.cal.dist = D;
   S.cal.unit = CUN.value;
-  const DI = S.cal.unit === 'm' ? D : D * 0.3048;
+  
+  // Convert to meters for calculation
+  let DI = D;
+  if (S.cal.unit === 'cm') {
+    DI = D * 0.01; // cm to m
+  } else if (S.cal.unit === 'm') {
+    DI = D;
+  }
+  
   S.cal.mpp = DI / PD;
   S.cal.on = false;
   CSB.textContent = `Calibrated: ${D} ${S.cal.unit}`;
@@ -1551,6 +1626,12 @@ function clearCal() {
   CSB.style.display = 'none'; CDI.value = '';
   PA.textContent = '–'; TA.textContent = '–';
   IMC.style.cursor = '';
+  // Clear the calibration line from overlay
+  if (S.working) {
+    const X = OC.getContext('2d');
+    X.clearRect(0, 0, OC.width, OC.height);
+    if (S.ana.on && S.overlay) renderOverlay();
+  }
 }
 
 // ─── Tool toggles ─────────────────────────────────────────────────────────────
@@ -1650,13 +1731,40 @@ function handleMouseDown(e) {
     const cpt = clampToImage({x: Math.round(pt.x), y: Math.round(pt.y)});
     S.cal.points.push(cpt);
     PCS.textContent = S.cal.points.length + '/2';
-    // draw dot on overlay
+    
+    // Draw dots and line on overlay
     const X = OC.getContext('2d');
-    X.fillStyle = '#4caf50';
-    X.beginPath();
-    X.arc(cpt.x * S.zoom + S.offset.x, cpt.y * S.zoom + S.offset.y, 5, 0, Math.PI*2);
-    X.fill();
-    if (S.cal.points.length === 2) completeCalibration();
+    X.clearRect(0, 0, OC.width, OC.height);
+    
+    // Draw first point
+    if (S.cal.points.length >= 1) {
+      const p1 = S.cal.points[0];
+      X.fillStyle = '#10b981';
+      X.beginPath();
+      X.arc(p1.x * S.zoom + S.offset.x, p1.y * S.zoom + S.offset.y, 5, 0, Math.PI*2);
+      X.fill();
+    }
+    
+    // Draw second point and line
+    if (S.cal.points.length === 2) {
+      const p1 = S.cal.points[0];
+      const p2 = S.cal.points[1];
+      
+      // Draw second point
+      X.beginPath();
+      X.arc(p2.x * S.zoom + S.offset.x, p2.y * S.zoom + S.offset.y, 5, 0, Math.PI*2);
+      X.fill();
+      
+      // Draw line between points
+      X.strokeStyle = '#10b981';
+      X.lineWidth = 2;
+      X.beginPath();
+      X.moveTo(p1.x * S.zoom + S.offset.x, p1.y * S.zoom + S.offset.y);
+      X.lineTo(p2.x * S.zoom + S.offset.x, p2.y * S.zoom + S.offset.y);
+      X.stroke();
+      
+      completeCalibration();
+    }
     return;
   }
 
@@ -1740,7 +1848,11 @@ function handleMouseUp(e) {
 function handleWheel(e) {
   e.preventDefault();
   const delta = e.deltaY > 0 ? -0.1 : 0.1;
-  const N = Math.max(S.minZ, Math.min(S.maxZ, S.zoom + delta));
+  let N = S.zoom + delta;
+  
+  // Clamp zoom to valid range (1.0 to maxZ)
+  N = Math.max(1, Math.min(S.maxZ, N));
+  
   if (N !== S.zoom) {
     const R = IMC.getBoundingClientRect();
     const mx = e.clientX - R.left, my = e.clientY - R.top;
@@ -1760,7 +1872,7 @@ function handleKeyDown(e) {
 }
 
 // ─── Zoom controls ────────────────────────────────────────────────────────────
-// FIXED: Now zoom to center properly
+// FIXED: Now zoom to center properly and prevent zoom out beyond full frame
 function zoomIn() {
   const N = Math.min(S.maxZ, S.zoom * 1.2);
   if (N !== S.zoom) {
@@ -1773,10 +1885,17 @@ function zoomIn() {
 }
 
 function zoomOut() {
-  const N = Math.max(S.minZ, S.zoom / 1.2);
-  if (N !== S.zoom) {
+  // Prevent zoom out when at full frame
+  if (S.zoom <= 1) {
+    return; // Don't allow zoom out at or below 1.0
+  }
+  
+  const N = Math.max(1, S.zoom / 1.2); // Minimum zoom is 1.0
+  
+  if (N < S.zoom) {
     const oldZoom = S.zoom;
     S.zoom = N;
+    // Keep centered
     S.offset.x = S.offset.x * (N / oldZoom);
     S.offset.y = S.offset.y * (N / oldZoom);
     renderImage();
@@ -1830,22 +1949,46 @@ function performAnalysis() {
   const TC = R.width * R.height;
   let PC = 0, TS = 0, TV = 0;
 
-  // Enhanced plant detection with multiple indices (like whacka.app)
+  // Enhanced plant detection with multiple indices
   for (let i = 0; i < o.length; i += 4) {
     const r = o[i], g = o[i+1], b = o[i+2];
+    const brightness = (r + g + b) / 3;
+    
+    // Skip very dark pixels (likely shadows or black)
+    if (brightness < 15) continue;
     
     // Calculate multiple vegetation indices
     const exG = (2*g - r - b) / 255;
+    const exG_norm = (2*g - r - b); // Non-normalized
     const ndvi = (g - r) / (g + r + 1);
     const greenRatio = g / (r + b + 1);
     const enhanced = exG * greenRatio;
     const GD = g > r && g > b;
     
-    // Adaptive threshold
-    const adaptiveThreshold = T * (1 + (255 - (r + g + b) / 3) / 255 * 0.3);
+    // Additional indices
+    const cive = (g - r) / (g + r + b) + 0.5; // Color Index of Vegetation Extract
+    const excessR = r - g;
+    const excessB = b - g;
     
-    // Use enhanced detection logic - catches more plants like the reference app
-    if ((enhanced > T && GD) || (exG > T * 0.8 && GD && g > 100)) {
+    // Check if green is significantly higher than both red and blue
+    const greenDominance = GD && (g - r) > 10 && (g - b) > 10;
+    
+    // Dynamic threshold based on image brightness
+    const baseThreshold = T;
+    const brightnessFactor = Math.min(1.5, Math.max(0.5, 1 + (255 - brightness) / 255 * 0.5));
+    const effectiveThreshold = baseThreshold * brightnessFactor;
+    
+    // Primary condition: enhanced index above threshold with green dominance
+    let isPlant = (enhanced > effectiveThreshold && greenDominance);
+    
+    // Secondary conditions for edge cases
+    isPlant = isPlant || 
+              (exG > effectiveThreshold * 0.7 && greenDominance && g > 80) ||
+              (exG_norm > 20 && greenDominance && brightness > 30) ||
+              (cive > 0.55 && GD && g > 100) ||
+              (ndvi > 0.25 && GD && brightness > 40);
+    
+    if (isPlant) {
       PC++;
       const Mx = Math.max(r,g,b), Mn = Math.min(r,g,b), D2 = Mx - Mn;
       const sat = D2 === 0 ? 0 : D2 / (1 - Math.abs(2*(Mx/255)-1));
@@ -1860,11 +2003,24 @@ function performAnalysis() {
   S.ana.on = true;
 
   if (S.cal.mpp) {
-    const mppUnit = S.cal.unit === 'm' ? S.cal.mpp : S.cal.mpp / 0.3048;
-    S.ana.area  = Math.round(PC * Math.pow(mppUnit, 2) * 100) / 100;
-    S.ana.tarea = Math.round(TC * Math.pow(mppUnit, 2) * 100) / 100;
-    PA.textContent = S.ana.area  + ' ' + S.cal.unit + '²';
-    TA.textContent = S.ana.tarea + ' ' + S.cal.unit + '²';
+    // Calculate area based on unit
+    let areaMultiplier = 1;
+    let areaUnit = S.cal.unit;
+    
+    if (S.cal.unit === 'cm') {
+      // mpp is in meters per pixel, convert to cm per pixel
+      const cmpp = S.cal.mpp * 100; // meters to cm
+      areaMultiplier = Math.pow(cmpp, 2);
+      areaUnit = 'cm²';
+    } else if (S.cal.unit === 'm') {
+      areaMultiplier = Math.pow(S.cal.mpp, 2);
+      areaUnit = 'm²';
+    }
+    
+    S.ana.area  = Math.round(PC * areaMultiplier * 100) / 100;
+    S.ana.tarea = Math.round(TC * areaMultiplier * 100) / 100;
+    PA.textContent = S.ana.area  + ' ' + areaUnit;
+    TA.textContent = S.ana.tarea + ' ' + areaUnit;
   } else {
     S.ana.area = 0; S.ana.tarea = 0;
     PA.textContent = 'calibrate for area';
