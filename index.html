@@ -1397,6 +1397,25 @@ function renderImage() {
   renderTargetOverlay();
 }
 
+function rgbToHsv(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h, s, v = max;
+  const d = max - min;
+  s = max === 0 ? 0 : d / max;
+  if (max === min) {
+    h = 0;
+  } else {
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+  return { h: h * 360, s: s, v: v };
+}
+
 function renderOverlay() {
   if (!S.working) return;
   const C = OC, X = C.getContext('2d');
@@ -1416,7 +1435,7 @@ function renderOverlay() {
   X.translate(S.offset.x, S.offset.y);
   X.scale(S.zoom, S.zoom);
 
-  // Enhanced plant recognition
+  // Enhanced plant recognition with HSV color space
   for (let y = 0; y < I.height; y++) {
     for (let x = 0; x < I.width; x++) {
       const i = (y * I.width + x) * 4;
@@ -1444,25 +1463,35 @@ function renderOverlay() {
       // Check if green is significantly higher than both red and blue
       const greenDominance = GD && (g - r) > 10 && (g - b) > 10;
       
+      // HSV-based plant detection (RECOMMENDED - catches more plant types)
+      const { h, s, v } = rgbToHsv(r, g, b);
+      const hsvGreen = h >= 50 && h <= 170 && s > 0.15 && v > 0.1;
+      
+      // Bright green method - simple but effective
+      const brightGreen = g > 120 && r < g*0.8 && b < g*0.8;
+      
       // Dynamic threshold based on image brightness
       const baseThreshold = T;
       const brightnessFactor = Math.min(1.5, Math.max(0.5, 1 + (255 - brightness) / 255 * 0.5));
       const effectiveThreshold = baseThreshold * brightnessFactor;
       
-      // Primary condition: enhanced index above threshold with green dominance
-      let isPlant = (enhanced > effectiveThreshold && greenDominance);
+      // Multi-method voting system: pixel is plant if >=2 methods agree
+      const votes = [];
+      votes.push(hsvGreen);
+      votes.push(enhanced > effectiveThreshold && greenDominance);
+      votes.push(exG > effectiveThreshold * 0.7 && greenDominance && g > 80);
+      votes.push(exG_norm > 20 && greenDominance && brightness > 30);
+      votes.push(cive > 0.55 && GD && g > 100);
+      votes.push(ndvi > 0.25 && GD && brightness > 40);
+      votes.push(brightGreen);
       
-      // Secondary conditions for edge cases
-      isPlant = isPlant || 
-                (exG > effectiveThreshold * 0.7 && greenDominance && g > 80) ||
-                (exG_norm > 20 && greenDominance && brightness > 30) ||
-                (cive > 0.55 && GD && g > 100) ||
-                (ndvi > 0.25 && GD && brightness > 40);
+      const plantVotes = votes.filter(v => v).length;
+      const isPlant = plantVotes >= 2;
       
       if (isPlant) {
         X.fillStyle = 'rgba(16, 185, 129, 0.55)';
       } else {
-        X.fillStyle = 'rgba(0,0,0,0.35)';
+        X.fillStyle = 'rgba(0,0,0,0.25)';
       }
       X.fillRect(x, y, 1, 1);
     }
@@ -1729,8 +1758,12 @@ function handleMouseDown(e) {
 
   if (S.cal.on) {
     const cpt = clampToImage({x: Math.round(pt.x), y: Math.round(pt.y)});
-    S.cal.points.push(cpt);
-    PCS.textContent = S.cal.points.length + '/2';
+    
+    // Only add point on click/down, not on move
+    if (e.type === 'mousedown' || (e.touches && e.touches.length === 1 && e.type === 'touchstart')) {
+      S.cal.points.push(cpt);
+      PCS.textContent = S.cal.points.length + '/2';
+    }
     
     // Draw dots and line on overlay
     const X = OC.getContext('2d');
@@ -1755,15 +1788,26 @@ function handleMouseDown(e) {
       X.arc(p2.x * S.zoom + S.offset.x, p2.y * S.zoom + S.offset.y, 5, 0, Math.PI*2);
       X.fill();
       
-      // Draw line between points
+      // Draw line between points (thicker and more visible)
       X.strokeStyle = '#10b981';
-      X.lineWidth = 2;
+      X.lineWidth = 3;
       X.beginPath();
       X.moveTo(p1.x * S.zoom + S.offset.x, p1.y * S.zoom + S.offset.y);
       X.lineTo(p2.x * S.zoom + S.offset.x, p2.y * S.zoom + S.offset.y);
       X.stroke();
       
       completeCalibration();
+    } else if (S.cal.points.length === 1) {
+      // Show the line being drawn (from first point to current mouse position)
+      const p1 = S.cal.points[0];
+      X.strokeStyle = '#10b981';
+      X.lineWidth = 2;
+      X.setLineDash([5, 5]);
+      X.beginPath();
+      X.moveTo(p1.x * S.zoom + S.offset.x, p1.y * S.zoom + S.offset.y);
+      X.lineTo(pt.x * S.zoom + S.offset.x, pt.y * S.zoom + S.offset.y);
+      X.stroke();
+      X.setLineDash([]);
     }
     return;
   }
@@ -1798,6 +1842,27 @@ function handleMouseDown(e) {
 function handleMouseMove(e) {
   e.preventDefault();
   const pt = canvasXY(e);
+
+  if (S.cal.on && S.cal.points.length === 1) {
+    // Show calibration line preview during drag
+    const X = OC.getContext('2d');
+    X.clearRect(0, 0, OC.width, OC.height);
+    const p1 = S.cal.points[0];
+    X.fillStyle = '#10b981';
+    X.beginPath();
+    X.arc(p1.x * S.zoom + S.offset.x, p1.y * S.zoom + S.offset.y, 5, 0, Math.PI*2);
+    X.fill();
+    X.strokeStyle = '#10b981';
+    X.lineWidth = 2;
+    X.setLineDash([5, 5]);
+    X.beginPath();
+    X.moveTo(p1.x * S.zoom + S.offset.x, p1.y * S.zoom + S.offset.y);
+    X.lineTo(pt.x * S.zoom + S.offset.x, pt.y * S.zoom + S.offset.y);
+    X.stroke();
+    X.setLineDash([]);
+    if (S.ana.on && S.overlay) renderOverlay();
+    return;
+  }
 
   if (S.pan.on) {
     S.offset.x += e.clientX - S.pan.start.x;
@@ -1874,32 +1939,46 @@ function handleKeyDown(e) {
 // ─── Zoom controls ────────────────────────────────────────────────────────────
 // FIXED: Now zoom to center properly and prevent zoom out beyond full frame
 function zoomIn() {
+  const I = S.working;
+  if (!I) return;
+  
   const N = Math.min(S.maxZ, S.zoom * 1.2);
-  if (N !== S.zoom) {
-    const oldZoom = S.zoom;
-    S.zoom = N;
-    S.offset.x = S.offset.x * (N / oldZoom);
-    S.offset.y = S.offset.y * (N / oldZoom);
-    renderImage();
-  }
+  if (N === S.zoom) return;
+  
+  const oldZoom = S.zoom;
+  const R = IMC.getBoundingClientRect();
+  const mx = R.width / 2;  // Center of canvas
+  const my = R.height / 2;
+  
+  S.zoom = N;
+  // Adjust offset to zoom toward center
+  S.offset.x = mx - (mx - S.offset.x) * (N / oldZoom);
+  S.offset.y = my - (my - S.offset.y) * (N / oldZoom);
+  renderImage();
 }
 
 function zoomOut() {
-  // Prevent zoom out when at full frame
+  const I = S.working;
+  if (!I) return;
+  
+  // Prevent zoom out when at full frame or when image fits
   if (S.zoom <= 1) {
     return; // Don't allow zoom out at or below 1.0
   }
   
   const N = Math.max(1, S.zoom / 1.2); // Minimum zoom is 1.0
+  if (N >= S.zoom) return;
   
-  if (N < S.zoom) {
-    const oldZoom = S.zoom;
-    S.zoom = N;
-    // Keep centered
-    S.offset.x = S.offset.x * (N / oldZoom);
-    S.offset.y = S.offset.y * (N / oldZoom);
-    renderImage();
-  }
+  const oldZoom = S.zoom;
+  const R = IMC.getBoundingClientRect();
+  const mx = R.width / 2;  // Center of canvas
+  const my = R.height / 2;
+  
+  S.zoom = N;
+  // Adjust offset to zoom toward center
+  S.offset.x = mx - (mx - S.offset.x) * (N / oldZoom);
+  S.offset.y = my - (my - S.offset.y) * (N / oldZoom);
+  renderImage();
 }
 
 function resetView() { S.zoom=1; S.offset={x:0,y:0}; renderImage(); }
@@ -1949,7 +2028,7 @@ function performAnalysis() {
   const TC = R.width * R.height;
   let PC = 0, TS = 0, TV = 0;
 
-  // Enhanced plant detection with multiple indices
+  // Enhanced plant detection with HSV color space and multi-method voting
   for (let i = 0; i < o.length; i += 4) {
     const r = o[i], g = o[i+1], b = o[i+2];
     const brightness = (r + g + b) / 3;
@@ -1967,26 +2046,34 @@ function performAnalysis() {
     
     // Additional indices
     const cive = (g - r) / (g + r + b) + 0.5; // Color Index of Vegetation Extract
-    const excessR = r - g;
-    const excessB = b - g;
     
     // Check if green is significantly higher than both red and blue
     const greenDominance = GD && (g - r) > 10 && (g - b) > 10;
+    
+    // HSV-based plant detection (RECOMMENDED - catches more plant types)
+    const { h, s, v } = rgbToHsv(r, g, b);
+    const hsvGreen = h >= 50 && h <= 170 && s > 0.15 && v > 0.1;
+    
+    // Bright green method - simple but effective
+    const brightGreen = g > 120 && r < g*0.8 && b < g*0.8;
     
     // Dynamic threshold based on image brightness
     const baseThreshold = T;
     const brightnessFactor = Math.min(1.5, Math.max(0.5, 1 + (255 - brightness) / 255 * 0.5));
     const effectiveThreshold = baseThreshold * brightnessFactor;
     
-    // Primary condition: enhanced index above threshold with green dominance
-    let isPlant = (enhanced > effectiveThreshold && greenDominance);
+    // Multi-method voting system: pixel is plant if >=2 methods agree
+    const votes = [];
+    votes.push(hsvGreen);
+    votes.push(enhanced > effectiveThreshold && greenDominance);
+    votes.push(exG > effectiveThreshold * 0.7 && greenDominance && g > 80);
+    votes.push(exG_norm > 20 && greenDominance && brightness > 30);
+    votes.push(cive > 0.55 && GD && g > 100);
+    votes.push(ndvi > 0.25 && GD && brightness > 40);
+    votes.push(brightGreen);
     
-    // Secondary conditions for edge cases
-    isPlant = isPlant || 
-              (exG > effectiveThreshold * 0.7 && greenDominance && g > 80) ||
-              (exG_norm > 20 && greenDominance && brightness > 30) ||
-              (cive > 0.55 && GD && g > 100) ||
-              (ndvi > 0.25 && GD && brightness > 40);
+    const plantVotes = votes.filter(v => v).length;
+    const isPlant = plantVotes >= 2;
     
     if (isPlant) {
       PC++;
