@@ -1384,6 +1384,8 @@ function renderImage() {
   const I = S.working;
   const DW = I.width * S.zoom, DH = I.height * S.zoom;
   [IMC, OC, DC].forEach(c => { c.width = DW; c.height = DH; });
+  // FIX: Set CSS dimensions to match bitmap dimensions to prevent scaling
+  [IMC, OC, DC].forEach(c => { c.style.width = DW + 'px'; c.style.height = DH + 'px'; });
   const X = IMC.getContext('2d');
   X.clearRect(0, 0, DW, DH);
   X.save();
@@ -1465,28 +1467,30 @@ function renderOverlay() {
       
       // HSV-based plant detection (RECOMMENDED - catches more plant types)
       const { h, s, v } = rgbToHsv(r, g, b);
-      const hsvGreen = h >= 50 && h <= 170 && s > 0.15 && v > 0.1;
+      // Wider green range to catch yellow-green plants and different lighting
+      const hsvGreen = h >= 40 && h <= 180 && s > 0.1 && v > 0.08;
       
-      // Bright green method - simple but effective
-      const brightGreen = g > 120 && r < g*0.8 && b < g*0.8;
+      // Bright green method - more lenient
+      const brightGreen = g > 100 && r < g*0.9 && b < g*0.9;
       
-      // Dynamic threshold based on image brightness
-      const baseThreshold = T;
-      const brightnessFactor = Math.min(1.5, Math.max(0.5, 1 + (255 - brightness) / 255 * 0.5));
+      // Lower thresholds for better detection
+      const baseThreshold = T * 0.8; // Reduced threshold
+      const brightnessFactor = Math.min(1.3, Math.max(0.7, 1 + (255 - brightness) / 255 * 0.3));
       const effectiveThreshold = baseThreshold * brightnessFactor;
       
-      // Multi-method voting system: pixel is plant if >=2 methods agree
+      // Multi-method voting system: pixel is plant if >=1 method agrees (more lenient)
       const votes = [];
       votes.push(hsvGreen);
-      votes.push(enhanced > effectiveThreshold && greenDominance);
-      votes.push(exG > effectiveThreshold * 0.7 && greenDominance && g > 80);
-      votes.push(exG_norm > 20 && greenDominance && brightness > 30);
-      votes.push(cive > 0.55 && GD && g > 100);
-      votes.push(ndvi > 0.25 && GD && brightness > 40);
+      votes.push(enhanced > effectiveThreshold * 0.8 && GD);  // Lower threshold, less strict green dominance
+      votes.push(exG > effectiveThreshold * 0.5 && GD && g > 60);  // More lenient
+      votes.push(exG_norm > 15 && g > r && g > b);  // Less strict
+      votes.push(cive > 0.5 && g > 80);  // Simplified
+      votes.push(ndvi > 0.15 && GD);  // Lower threshold
       votes.push(brightGreen);
       
       const plantVotes = votes.filter(v => v).length;
-      const isPlant = plantVotes >= 2;
+      // Accept if at least 1 method detects plant (was 2, too strict)
+      const isPlant = plantVotes >= 1;
       
       if (isPlant) {
         X.fillStyle = 'rgba(16, 185, 129, 0.55)';
@@ -2052,28 +2056,30 @@ function performAnalysis() {
     
     // HSV-based plant detection (RECOMMENDED - catches more plant types)
     const { h, s, v } = rgbToHsv(r, g, b);
-    const hsvGreen = h >= 50 && h <= 170 && s > 0.15 && v > 0.1;
+    // Wider green range to catch yellow-green plants and different lighting
+    const hsvGreen = h >= 40 && h <= 180 && s > 0.1 && v > 0.08;
     
-    // Bright green method - simple but effective
-    const brightGreen = g > 120 && r < g*0.8 && b < g*0.8;
+    // Bright green method - more lenient
+    const brightGreen = g > 100 && r < g*0.9 && b < g*0.9;
     
-    // Dynamic threshold based on image brightness
-    const baseThreshold = T;
-    const brightnessFactor = Math.min(1.5, Math.max(0.5, 1 + (255 - brightness) / 255 * 0.5));
+    // Lower thresholds for better detection
+    const baseThreshold = T * 0.8; // Reduced threshold
+    const brightnessFactor = Math.min(1.3, Math.max(0.7, 1 + (255 - brightness) / 255 * 0.3));
     const effectiveThreshold = baseThreshold * brightnessFactor;
     
-    // Multi-method voting system: pixel is plant if >=2 methods agree
+    // Multi-method voting system: pixel is plant if >=1 method agrees (more lenient)
     const votes = [];
     votes.push(hsvGreen);
-    votes.push(enhanced > effectiveThreshold && greenDominance);
-    votes.push(exG > effectiveThreshold * 0.7 && greenDominance && g > 80);
-    votes.push(exG_norm > 20 && greenDominance && brightness > 30);
-    votes.push(cive > 0.55 && GD && g > 100);
-    votes.push(ndvi > 0.25 && GD && brightness > 40);
+    votes.push(enhanced > effectiveThreshold * 0.8 && GD);  // Lower threshold, less strict green dominance
+    votes.push(exG > effectiveThreshold * 0.5 && GD && g > 60);  // More lenient
+    votes.push(exG_norm > 15 && g > r && g > b);  // Less strict
+    votes.push(cive > 0.5 && g > 80);  // Simplified
+    votes.push(ndvi > 0.15 && GD);  // Lower threshold
     votes.push(brightGreen);
     
     const plantVotes = votes.filter(v => v).length;
-    const isPlant = plantVotes >= 2;
+    // Accept if at least 1 method detects plant (was 2, too strict)
+    const isPlant = plantVotes >= 1;
     
     if (isPlant) {
       PC++;
