@@ -1188,8 +1188,7 @@ footer a:hover{
 <p style="font-size:.85rem;color:var(--text-muted);margin-top:8px;margin-bottom:16px;font-weight:400">Aggressive = catches faint green | Conservative = only strong green</p>
 <div class="tool-sel">
 <button class="tool-btn" id="targetBtn" onclick="toggleTarget()">🎯 Target Area</button>
-<button class="tool-btn" id="punchBtn" onclick="addPunchWindow()" style="display:none;" title="Punch out exclusion window">➖ Window</button>
-<button class="tool-btn" id="clearWinBtn" onclick="clearPunchWindows()" style="display:none;" title="Clear all exclusion windows">🗑️ Clear Windows</button>
+<button class="tool-btn" id="windowBtn" onclick="toggleWindow()">🪟 Window</button>
 <button class="tool-btn" id="squareBtn" onclick="toggleSquare()">📐 1m² Square</button>
 <button class="tool-btn" id="volumeBtn" onclick="toggleVolume()">📦 Volume</button>
 <button class="tool-btn" id="brushBtn" onclick="cycleBrush()">✏️ Brush: Off</button>
@@ -1382,7 +1381,8 @@ const S = {
   offset: {x:0,y:0}, zoom: 1, maxZ: 4, minZ: 1,
   cal: {on:false, points:[], dist:null, unit:'cm', mpp:null},
   ana: {on:false, sens:50, pixels:0, total:0, cov:0, area:0, tarea:0},
-  target: {on:false, x:0, y:0, w:0, h:0, drag:false, windows:[], windowDrag:false},
+  target: {on:false, x:0, y:0, w:0, h:0, drag:false},
+  window: {on:false, x:0, y:0, w:0, h:0, drag:false},
   square: {on:false, x:0, y:0, w:100, h:100, drag:false},
   volume: {on:false},
   brush: {on:'off', mode:'add', size:10},
@@ -1395,7 +1395,7 @@ const S = {
 };
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
-let U, FI, IC, IW, IMC, OC, DC, ST, CALSEC, ANASEC, RS, CSB, CDI, CUN, SCB, CCB, PCI, PCS, SS, SV, TBTN, SBTN, VBTN, BBTN, BC, ABTN, EBTN, BS, BSV, ANB, TOB, SAVB, MN, CP, PA, TA, VS, VR, VV, HL, CCT, CH, CB, EM, LO, MODAL, PN, PCN, PCPN, PBTN, CWBTN;
+let U, FI, IC, IW, IMC, OC, DC, ST, CALSEC, ANASEC, RS, CSB, CDI, CUN, SCB, CCB, PCI, PCS, SS, SV, TBTN, WBTN, SBTN, VBTN, BBTN, BC, ABTN, EBTN, BS, BSV, ANB, TOB, SAVB, MN, CP, PA, TA, VS, VR, VV, HL, CCT, CH, CB, EM, LO, MODAL, PN, PCN, PCPN;
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
@@ -1423,8 +1423,7 @@ function init() {
   SBTN = document.getElementById('squareBtn');
   VBTN = document.getElementById('volumeBtn');
   BBTN = document.getElementById('brushBtn');
-  PBTN = document.getElementById('punchBtn');
-  CWBTN = document.getElementById('clearWinBtn');
+  WBTN = document.getElementById('windowBtn');
   BC   = document.getElementById('brushCtrls');
   ABTN = document.getElementById('addBtn');
   EBTN = document.getElementById('eraseBtn');
@@ -1567,6 +1566,7 @@ function renderImage() {
   renderDrawing();
   renderSquareTool();
   renderTargetOverlay();
+  renderWindowOverlay();
 }
 
 function rgbToHsv(r, g, b) {
@@ -1731,7 +1731,6 @@ function renderTargetOverlay() {
   const X = OC.getContext('2d');
   const ox = S.offset.x, oy = S.offset.y, z = S.zoom;
   const I = S.working;
-  const DW = I.width * z, DH = I.height * z;
   
   X.save();
   // CORRECT: Translate by -offset to match renderImage() convention
@@ -1753,20 +1752,6 @@ function renderTargetOverlay() {
   X.fillStyle = 'rgba(107, 158, 122, 0.15)';
   X.fillRect(S.target.x, S.target.y, S.target.w, S.target.h);
   
-  // Draw punch-out windows (exclusion zones)
-  X.fillStyle = 'rgba(239, 68, 68, 0.3)';
-  for (const win of S.target.windows) {
-    X.fillRect(win.x, win.y, win.w, win.h);
-    X.strokeStyle = 'rgba(239, 68, 68, 1)';
-    X.lineWidth = 2 / z;
-    X.strokeRect(win.x, win.y, win.w, win.h);
-  }
-  // If currently drawing a new window, show it
-  if (S.target.windowCurrent) {
-    X.fillRect(S.target.windowCurrent.x, S.target.windowCurrent.y, S.target.windowCurrent.w, S.target.windowCurrent.h);
-    X.strokeRect(S.target.windowCurrent.x, S.target.windowCurrent.y, S.target.windowCurrent.w, S.target.windowCurrent.h);
-  }
-  
   // border
   X.strokeStyle = 'rgba(107, 158, 122, 1)';
   X.lineWidth = 3 / z; // Scale line width inversely to maintain visual thickness
@@ -1783,6 +1768,41 @@ function renderTargetOverlay() {
   X.fillRect(S.target.x - handleSize/2, (S.target.y + S.target.h) - handleSize/2, handleSize, handleSize);
   // Bottom-right
   X.fillRect((S.target.x + S.target.w) - handleSize/2, (S.target.y + S.target.h) - handleSize/2, handleSize, handleSize);
+  
+  X.restore();
+}
+
+function renderWindowOverlay() {
+  if (!S.window.on || !S.working) return;
+  const X = OC.getContext('2d');
+  const ox = S.offset.x, oy = S.offset.y, z = S.zoom;
+  const I = S.working;
+  
+  X.save();
+  // CORRECT: Translate by -offset to match renderImage() convention
+  X.translate(-ox, -oy);
+  X.scale(z, z);
+  
+  // Draw window rectangle with semi-transparent red fill
+  X.fillStyle = 'rgba(239, 68, 68, 0.15)';
+  X.fillRect(S.window.x, S.window.y, S.window.w, S.window.h);
+  
+  // border
+  X.strokeStyle = 'rgba(239, 68, 68, 1)';
+  X.lineWidth = 3 / z;
+  X.strokeRect(S.window.x, S.window.y, S.window.w, S.window.h);
+  
+  // Draw corner handles for better UX
+  const handleSize = 8 / z;
+  X.fillStyle = 'rgba(239, 68, 68, 0.8)';
+  // Top-left
+  X.fillRect(S.window.x - handleSize/2, S.window.y - handleSize/2, handleSize, handleSize);
+  // Top-right
+  X.fillRect((S.window.x + S.window.w) - handleSize/2, S.window.y - handleSize/2, handleSize, handleSize);
+  // Bottom-left
+  X.fillRect(S.window.x - handleSize/2, (S.window.y + S.window.h) - handleSize/2, handleSize, handleSize);
+  // Bottom-right
+  X.fillRect((S.window.x + S.window.w) - handleSize/2, (S.window.y + S.window.h) - handleSize/2, handleSize, handleSize);
   
   X.restore();
 }
@@ -1874,132 +1894,30 @@ function toggleTarget() {
   S.target.on = !S.target.on;
   if (S.target.on) {
     if (!S.working) return;
-    S.target = {on:true, x:50, y:50, w:Math.min(200, S.working.width-60), h:Math.min(200, S.working.height-60), drag:false, windows:[], windowDrag:false};
+    S.target = {on:true, x:50, y:50, w:Math.min(200, S.working.width-60), h:Math.min(200, S.working.height-60), drag:false};
     S.square.on = false; SBTN.classList.remove('active');
-    showSuccess('Drag inside image to draw target area. Use Window button to punch out exclusion zones.');
+    S.window.on = false; WBTN.classList.remove('active');
+    showSuccess('Drag to draw target area (green). Use Window tool to subtract exclusion zones.');
   } else {
     S.target.on = false;
-    S.target.windowDrag = false;
-    S.target.windowStart = null;
-    S.target.windowCurrent = null;
   }
   TBTN.classList.toggle('active', S.target.on);
-  PBTN.style.display = S.target.on ? 'inline-flex' : 'none';
-  CWBTN.style.display = S.target.on ? 'inline-flex' : 'none';
   renderImage();
   if (S.ana.on) analyze();
 }
 
-// Punch-out window management
-function addPunchWindow() {
-  if (!S.target.on || !S.working) return;
-  
-  S.target.windowDrag = true;
-  S.target.windowStart = null;
-  showSuccess('Drag inside target area to draw exclusion window. Click and drag to resize/move. Click Clear Windows to remove all.');
-}
-
-function handlePunchWindowStart(e) {
-  if (!S.target.windowDrag || !S.working) return;
-  
-  const R = IMC.getBoundingClientRect();
-  const mx = (e.clientX - R.left) / S.zoom + S.offset.x;
-  const my = (e.clientY - R.top) / S.zoom + S.offset.y;
-  
-  // Check if click is inside target area
-  if (mx >= S.target.x && mx <= S.target.x + S.target.w &&
-      my >= S.target.y && my <= S.target.y + S.target.h) {
-    
-    // Check if clicking on existing window for dragging
-    let clickedWindow = null;
-    for (let i = 0; i < S.target.windows.length; i++) {
-      const w = S.target.windows[i];
-      if (mx >= w.x && mx <= w.x + w.w && my >= w.y && my <= w.y + w.h) {
-        clickedWindow = i;
-        break;
-      }
-    }
-    
-    if (clickedWindow !== null) {
-      // Start dragging existing window
-      S.target.windowDragIndex = clickedWindow;
-      S.target.dragWindowOff = {x: mx - S.target.windows[clickedWindow].x, y: my - S.target.windows[clickedWindow].y};
-    } else {
-      // Create new window
-      S.target.windowStart = {x: mx, y: my};
-      S.target.windowCurrent = {x: mx, y: my, w: 0, h: 0};
-    }
-    
-    e.preventDefault();
-    e.stopPropagation();
+function toggleWindow() {
+  S.window.on = !S.window.on;
+  if (S.window.on) {
+    if (!S.working) return;
+    S.window = {on:true, x:100, y:100, w:Math.min(150, S.working.width-110), h:Math.min(150, S.working.height-110), drag:false};
+    S.square.on = false; SBTN.classList.remove('active');
+    S.target.on = false; TBTN.classList.remove('active');
+    showSuccess('Drag to draw window (red). This area will be subtracted from target.');
+  } else {
+    S.window.on = false;
   }
-}
-
-function handlePunchWindowMove(e) {
-  if (!S.target.windowDrag || !S.working) return;
-  
-  const R = IMC.getBoundingClientRect();
-  const mx = (e.clientX - R.left) / S.zoom + S.offset.x;
-  const my = (e.clientY - R.top) / S.zoom + S.offset.y;
-  
-  if (S.target.windowStart) {
-    // Drawing new window
-    const w = Math.abs(mx - S.target.windowStart.x);
-    const h = Math.abs(my - S.target.windowStart.y);
-    S.target.windowCurrent = {
-      x: Math.min(S.target.windowStart.x, mx),
-      y: Math.min(S.target.windowStart.y, my),
-      w: w,
-      h: h
-    };
-    renderImage();
-  } else if (S.target.dragWindowOff) {
-    // Dragging existing window
-    const idx = S.target.windowDragIndex;
-    S.target.windows[idx].x = Math.max(S.target.x, Math.min(S.target.x + S.target.w - S.target.windows[idx].w, mx - S.target.dragWindowOff.x));
-    S.target.windows[idx].y = Math.max(S.target.y, Math.min(S.target.y + S.target.h - S.target.windows[idx].h, my - S.target.dragWindowOff.y));
-    renderImage();
-  }
-  
-  e.preventDefault();
-  e.stopPropagation();
-}
-
-function handlePunchWindowEnd(e) {
-  if (!S.target.windowDrag || !S.working) return;
-  
-  if (S.target.windowStart && S.target.windowCurrent.w > 10 && S.target.windowCurrent.h > 10) {
-    // Finalize new window - make sure it's within target bounds
-    const newWin = {
-      x: Math.max(S.target.x, Math.min(S.target.x + S.target.w - S.target.windowCurrent.w, S.target.windowCurrent.x)),
-      y: Math.max(S.target.y, Math.min(S.target.y + S.target.h - S.target.windowCurrent.h, S.target.windowCurrent.y)),
-      w: S.target.windowCurrent.w,
-      h: S.target.windowCurrent.h
-    };
-    S.target.windows.push(newWin);
-    showSuccess('Exclusion window added. Drag to move, analyse to see effect.');
-  }
-  
-  S.target.windowDrag = false;
-  S.target.windowStart = null;
-  S.target.windowCurrent = null;
-  S.target.windowDragIndex = null;
-  S.target.dragWindowOff = null;
-  renderImage();
-  
-  e.preventDefault();
-  e.stopPropagation();
-}
-
-function clearPunchWindows() {
-  if (!S.target.on) return;
-  S.target.windows = [];
-  S.target.windowDrag = false;
-  S.target.windowStart = null;
-  S.target.windowCurrent = null;
-  S.target.windowDragIndex = null;
-  S.target.dragWindowOff = null;
-  showSuccess('All exclusion windows cleared.');
+  WBTN.classList.toggle('active', S.window.on);
   renderImage();
   if (S.ana.on) analyze();
 }
@@ -2159,13 +2077,6 @@ function handleMouseDown(e) {
 
   if (S.target.on) {
     const cp = clampToImage(pt);
-    
-    // If in punch window mode, handle window operations
-    if (S.target.windowDrag) {
-      handlePunchWindowStart(e);
-      return;
-    }
-    
     // Check if click is inside existing target (for dragging)
     if (cp.x >= S.target.x && cp.x <= S.target.x + S.target.w &&
         cp.y >= S.target.y && cp.y <= S.target.y + S.target.h &&
@@ -2178,6 +2089,24 @@ function handleMouseDown(e) {
       S.target.drag = true;
       S.dragStart = {x: cp.x, y: cp.y};
       S.target.x = cp.x; S.target.y = cp.y; S.target.w = 0; S.target.h = 0;
+    }
+    return;
+  }
+
+  if (S.window.on) {
+    const cp = clampToImage(pt);
+    // Check if click is inside existing window (for dragging)
+    if (cp.x >= S.window.x && cp.x <= S.window.x + S.window.w &&
+        cp.y >= S.window.y && cp.y <= S.window.y + S.window.h &&
+        S.window.w > 10 && S.window.h > 10) {
+      // Drag existing window
+      S.window.drag = true;
+      S.dragOff = {x: cp.x - S.window.x, y: cp.y - S.window.y};
+    } else {
+      // Create new window from scratch
+      S.window.drag = true;
+      S.dragStart = {x: cp.x, y: cp.y};
+      S.window.x = cp.x; S.window.y = cp.y; S.window.w = 0; S.window.h = 0;
     }
     return;
   }
@@ -2264,10 +2193,21 @@ function handleMouseMove(e) {
     renderImage();
     return;
   }
-  
-  // Handle punch window dragging
-  if (S.target.windowDrag) {
-    handlePunchWindowMove(e);
+
+  if (S.window.drag) {
+    const cp = clampToImage(pt);
+    if (S.dragOff) {
+      // Dragging existing window - move it
+      S.window.x = Math.max(0, Math.min(S.working.width - S.window.w, Math.round(cp.x - S.dragOff.x)));
+      S.window.y = Math.max(0, Math.min(S.working.height - S.window.h, Math.round(cp.y - S.dragOff.y)));
+    } else if (S.dragStart) {
+      // Creating new window from scratch
+      S.window.x = Math.min(S.dragStart.x, cp.x);
+      S.window.y = Math.min(S.dragStart.y, cp.y);
+      S.window.w = Math.abs(cp.x - S.dragStart.x);
+      S.window.h = Math.abs(cp.y - S.dragStart.y);
+    }
+    renderImage();
     return;
   }
 
@@ -2283,15 +2223,10 @@ function handleMouseMove(e) {
 function handleMouseUp(e) {
   e.preventDefault();
   const wasDrawing = S.drawing;
-  const wasDragging = S.target.drag || S.square.drag || S.target.windowDrag;
+  const wasDragging = S.target.drag || S.window.drag || S.square.drag;
   S.pan.on = false; S.drawing = false;
-  S.target.drag = false; S.square.drag = false;
+  S.target.drag = false; S.window.drag = false; S.square.drag = false;
   S.dragStart = null; S.dragOff = null;
-  
-  // Handle punch window end
-  if (S.target.windowDrag) {
-    handlePunchWindowEnd(e);
-  }
   
   if (S.ana.on && (wasDrawing || wasDragging)) analyze();
 }
@@ -2447,13 +2382,20 @@ function performAnalysis() {
   const TC = R.width * R.height;
   let PC = 0;
   
-  // Prepare punch-out windows relative to R (if using target area)
-  const windows = S.target.on ? S.target.windows.map(w => ({
-    x: w.x - R.x,
-    y: w.y - R.y,
-    w: w.w,
-    h: w.h
-  })) : [];
+  // Prepare window exclusion area relative to R (if using target area and window is defined)
+  let win = null;
+  if (S.target.on && S.window.on && S.window.w > 5 && S.window.h > 5) {
+    // Window is relative to image coordinates, convert to R coordinates
+    win = {
+      x: Math.max(0, S.window.x - R.x),
+      y: Math.max(0, S.window.y - R.y),
+      w: S.window.w,
+      h: S.window.h
+    };
+    // Clamp window to R bounds
+    win.w = Math.min(win.w, R.width - win.x);
+    win.h = Math.min(win.h, R.height - win.y);
+  }
 
   // Enhanced plant detection with HSV colour space and multi-method voting
   for (let i = 0; i < o.length; i += 4) {
@@ -2461,15 +2403,10 @@ function performAnalysis() {
     const px = (i / 4) % R.width;
     const py = Math.floor((i / 4) / R.width);
     
-    // Skip pixels in punch-out windows
-    let inWindow = false;
-    for (const win of windows) {
-      if (px >= win.x && px < win.x + win.w && py >= win.y && py < win.y + win.h) {
-        inWindow = true;
-        break;
-      }
+    // Skip pixels in window area (window is subtracted from target)
+    if (win && px >= win.x && px < win.x + win.w && py >= win.y && py < win.y + win.h) {
+      continue;
     }
-    if (inWindow) continue;
     
     const r = o[i], g = o[i+1], b = o[i+2];
     const brightness = (r + g + b) / 3;
@@ -3064,7 +3001,8 @@ function clearAll() {
   S.offset = {x:0,y:0}; S.zoom = 1;
   S.cal = {on:false,points:[],dist:null,unit:'m',mpp:null};
   S.ana = {on:false,sens:50,pixels:0,total:0,cov:0,area:0,tarea:0,areaM2:0,tareaM2:0,areaCm2:0,tareaCm2:0,areaUnit:'m²'};
-  S.target = {on:false,x:0,y:0,w:0,h:0,drag:false,windows:[],windowDrag:false};
+  S.target = {on:false,x:0,y:0,w:0,h:0,drag:false};
+  S.window = {on:false,x:0,y:0,w:0,h:0,drag:false};
   S.square = {on:false,x:0,y:0,w:100,h:100,drag:false};
   S.volume = {on:false}; S.brush = {on:'off',mode:'add',size:10};
   S.overlay = true; S.drawing = false; S.lastP = null;
