@@ -2349,27 +2349,23 @@ function performAnalysis() {
   S.ana.on = true;
 
   if (S.cal.mpp) {
-    // Calculate area based on unit
-    let areaMultiplier = 1;
-    let areaUnit = 'm²';
+    // Calculate area in both m² and cm²
+    const mpp = S.cal.mpp;
+    const m2Multiplier = Math.pow(mpp, 2);
+    const cm2Multiplier = Math.pow(mpp * 100, 2); // 1m = 100cm
     
-    if (S.cal.unit === 'cm') {
-      // mpp is in meters per pixel, convert to cm per pixel
-      const cmpp = S.cal.mpp * 100; // meters to cm
-      areaMultiplier = Math.pow(cmpp, 2);
-      areaUnit = 'cm²';
-    } else if (S.cal.unit === 'm') {
-      areaMultiplier = Math.pow(S.cal.mpp, 2);
-      areaUnit = 'm²';
-    }
+    S.ana.areaM2  = Math.round(PC * m2Multiplier * 100) / 100;
+    S.ana.tareaM2 = Math.round(TC * m2Multiplier * 100) / 100;
+    S.ana.areaCm2 = Math.round(PC * cm2Multiplier * 100) / 100;
+    S.ana.tareaCm2 = Math.round(TC * cm2Multiplier * 100) / 100;
     
-    S.ana.area  = Math.round(PC * areaMultiplier * 100) / 100;
-    S.ana.tarea = Math.round(TC * areaMultiplier * 100) / 100;
-    S.ana.areaUnit = areaUnit;
-    PA.textContent = S.ana.area  + ' ' + areaUnit;
-    TA.textContent = S.ana.tarea + ' ' + areaUnit;
+    // Display both units
+    PA.textContent = S.ana.areaM2 + ' m² | ' + S.ana.areaCm2 + ' cm²';
+    TA.textContent = S.ana.tareaM2 + ' m² | ' + S.ana.tareaCm2 + ' cm²';
+    S.ana.areaUnit = 'm²';
   } else {
-    S.ana.area = 0; S.ana.tarea = 0;
+    S.ana.areaM2 = 0; S.ana.tareaM2 = 0;
+    S.ana.areaCm2 = 0; S.ana.tareaCm2 = 0;
     S.ana.areaUnit = 'm²';
     PA.textContent = 'calibrate for area';
     TA.textContent = 'calibrate for area';
@@ -2393,6 +2389,8 @@ function saveMeasure() {
     timestamp: new Date().toISOString(),
     cov: S.ana.cov, px: S.ana.pixels, tpx: S.ana.total,
     area: S.ana.area, tarea: S.ana.tarea,
+    areaM2: S.ana.areaM2, tareaM2: S.ana.tareaM2,
+    areaCm2: S.ana.areaCm2, tareaCm2: S.ana.tareaCm2,
     areaUnit: S.ana.areaUnit || 'm²',
     unit: S.cal.unit || 'm',
     sens: S.ana.sens,
@@ -2410,11 +2408,13 @@ function loadMeasurements() {
     const saved = localStorage.getItem('cs_measures');
     if (saved) {
       S.measures = JSON.parse(saved);
-      // Add areaUnit to old measurements
+      // Add missing properties to old measurements
       S.measures.forEach(M => {
-        if (!M.areaUnit) {
-          M.areaUnit = 'm²';
-        }
+        if (!M.areaUnit) M.areaUnit = 'm²';
+        if (!M.areaM2) M.areaM2 = M.area || 0;
+        if (!M.tareaM2) M.tareaM2 = M.tarea || 0;
+        if (!M.areaCm2) M.areaCm2 = M.area ? Math.round(M.area * 10000 * 100) / 100 : 0;
+        if (!M.tareaCm2) M.tareaCm2 = M.tarea ? Math.round(M.tarea * 10000 * 100) / 100 : 0;
       });
     }
   } catch(e) { S.measures = []; }
@@ -2485,8 +2485,8 @@ function exportExcel() {
   const SL = S.measures.filter(m => S.sel.includes(m.id));
   if (!SL.length) return;
   const WB = XLSX.utils.book_new();
-  const D  = [['Measurement','Date','Coverage %','Plant Area','Total Area']];
-  SL.forEach(M => D.push([M.name, new Date(M.timestamp).toLocaleString(), M.cov+'%', (M.area||'N/A') + ' ' + (M.areaUnit||'m²'), (M.tarea||'N/A') + ' ' + (M.areaUnit||'m²')]));
+  const D  = [['Measurement','Date','Coverage %','Plant Area (m²)','Plant Area (cm²)','Total Area (m²)','Total Area (cm²)']];
+  SL.forEach(M => D.push([M.name, new Date(M.timestamp).toLocaleString(), M.cov+'%', (M.areaM2||'N/A') + ' m²', (M.areaCm2||'N/A') + ' cm²', (M.tareaM2||'N/A') + ' m²', (M.tareaCm2||'N/A') + ' cm²']));
   const WS = XLSX.utils.aoa_to_sheet(D);
   XLSX.utils.book_append_sheet(WB, WS, 'Comparison');
   XLSX.writeFile(WB, `CoverScope-${new Date().toISOString().split('T')[0]}.xlsx`);
@@ -2505,9 +2505,9 @@ function exportPDF() {
   doc.setFontSize(10); doc.text(new Date().toLocaleDateString(), 105, 30, {align:'center'});
   let Y = 45;
   doc.setFontSize(9);
-  doc.text('Measurement | Date | Coverage | Area', 10, Y); Y += 8;
+  doc.text('Measurement | Date | Coverage | Plant Area (m²) | Total Area (m²)', 10, Y); Y += 8;
   SL.forEach(M => {
-    doc.text([M.name, new Date(M.timestamp).toLocaleDateString(), M.cov+'%', (M.area||'N/A') + ' ' + (M.areaUnit||'m²')].join(' | '), 10, Y);
+    doc.text([M.name, new Date(M.timestamp).toLocaleDateString(), M.cov+'%', (M.areaM2||'N/A') + ' m² | ' + (M.areaCm2||'N/A') + ' cm²', (M.tareaM2||'N/A') + ' m² | ' + (M.tareaCm2||'N/A') + ' cm²'].join(' | '), 10, Y);
     Y += 8;
   });
   doc.save(fileName + '.pdf');
@@ -2526,9 +2526,9 @@ function exportAllPDF() {
   doc.setFontSize(10); doc.text(new Date().toLocaleDateString(), 105, 30, {align:'center'});
   let Y = 45;
   doc.setFontSize(9);
-  doc.text('Measurement | Date | Coverage | Area', 10, Y); Y += 8;
+  doc.text('Measurement | Date | Coverage | Plant Area (m²) | Total Area (m²)', 10, Y); Y += 8;
   S.measures.forEach(M => {
-    doc.text([M.name, new Date(M.timestamp).toLocaleDateString(), M.cov+'%', (M.area||'N/A') + ' ' + (M.areaUnit||'m²')].join(' | '), 10, Y);
+    doc.text([M.name, new Date(M.timestamp).toLocaleDateString(), M.cov+'%', (M.areaM2||'N/A') + ' m² | ' + (M.areaCm2||'N/A') + ' cm²', (M.tareaM2||'N/A') + ' m² | ' + (M.tareaCm2||'N/A') + ' cm²'].join(' | '), 10, Y);
     Y += 8;
   });
   doc.save(fileName + '.pdf');
@@ -2547,8 +2547,9 @@ function exportCurrentPDF() {
     name: customName,
     timestamp: new Date().toISOString(),
     cov: S.ana.cov,
-    area: S.ana.area,
-    tarea: S.ana.tarea
+    area: S.ana.area, tarea: S.ana.tarea,
+    areaM2: S.ana.areaM2, tareaM2: S.ana.tareaM2,
+    areaCm2: S.ana.areaCm2, tareaCm2: S.ana.tareaCm2
   };
   
   doc.setFontSize(18);
@@ -2582,8 +2583,8 @@ function exportCurrentPDF() {
   
   doc.setFontSize(12);
   doc.text('Coverage: ' + M.cov + '%', 10, Y); Y += 10;
-  doc.text('Plant Area: ' + (M.area || 'N/A') + ' ' + (M.areaUnit || 'm²'), 10, Y); Y += 10;
-  doc.text('Total Area: ' + (M.tarea || 'N/A') + ' ' + (M.areaUnit || 'm²'), 10, Y);
+  doc.text('Plant Area: ' + (M.areaM2 || 'N/A') + ' m² | ' + (M.areaCm2 || 'N/A') + ' cm²', 10, Y); Y += 10;
+  doc.text('Total Area: ' + (M.tareaM2 || 'N/A') + ' m² | ' + (M.tareaCm2 || 'N/A') + ' cm²', 10, Y);
   
   doc.save(fileName + '.pdf');
   if (PCN) PCN.value = '';
@@ -2604,7 +2605,7 @@ function clearAll() {
   S.original = null; S.working = null;
   S.offset = {x:0,y:0}; S.zoom = 1;
   S.cal = {on:false,points:[],dist:null,unit:'m',mpp:null};
-  S.ana = {on:false,sens:50,pixels:0,total:0,cov:0,area:0,tarea:0,areaUnit:'m²'};
+  S.ana = {on:false,sens:50,pixels:0,total:0,cov:0,area:0,tarea:0,areaM2:0,tareaM2:0,areaCm2:0,tareaCm2:0,areaUnit:'m²'};
   S.target = {on:false,x:0,y:0,w:0,h:0,drag:false};
   S.square = {on:false,x:0,y:0,w:100,h:100,drag:false};
   S.volume = {on:false}; S.brush = {on:'off',mode:'add',size:10};
