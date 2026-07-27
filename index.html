@@ -2669,6 +2669,12 @@ function exportCurrentPDF() {
   const customName = PCN?.value?.trim() || 'Current Measurement';
   const fileName = `CoverScope-${customName.replace(/[^a-z0-9]/gi, '_')}-${new Date().toISOString().split('T')[0]}`;
   
+  const M = {
+    cov: S.ana.cov,
+    areaM2: S.ana.areaM2, tareaM2: S.ana.tareaM2,
+    areaCm2: S.ana.areaCm2, tareaCm2: S.ana.tareaCm2
+  };
+  
   const colors = setupPDFStyles(doc);
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
