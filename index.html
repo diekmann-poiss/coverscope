@@ -1206,6 +1206,9 @@ footer a:hover{
 <div class="result-card"><div class="result-lbl">Total Area</div><div class="result-value" id="totalArea">–</div></div>
 <div class="result-card"><div class="result-lbl">Health</div><div class="result-value" id="healthIdx">0%</div></div>
 </div>
+<div class="btn-grp" style="margin-top:16px">
+<button class="btn btn-p" onclick="exportCurrentPDF()">📄 Export Current to PDF</button>
+</div>
 <div class="vol-sec" id="volSec">
 <h4 style="margin-bottom:10px">Cubic Volume</h4>
 <p style="font-size:.8rem;color:var(--ts);margin-bottom:10px">Enter plant heights (m) at each corner and center of the 1m² square:</p>
@@ -1228,6 +1231,9 @@ footer a:hover{
 <div id="history-tab" class="tab-content">
 <div class="card">
 <div class="history-list" id="historyList"></div>
+<div class="btn-grp" style="margin-top:20px">
+<button class="btn btn-p" onclick="exportAllPDF()">📄 Export All to PDF</button>
+</div>
 </div>
 </div>
 
@@ -2477,6 +2483,45 @@ function exportPDF() {
     Y += 8;
   });
   doc.save(`CoverScope-${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+function exportAllPDF() {
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF();
+  if (!S.measures.length) return;
+  doc.setFontSize(18); doc.text('CoverScope - All Measurements', 105, 20, {align:'center'});
+  doc.setFontSize(10); doc.text(new Date().toLocaleDateString(), 105, 30, {align:'center'});
+  let Y = 45;
+  doc.setFontSize(9);
+  doc.text('Measurement | Date | Coverage | Area | Health', 10, Y); Y += 8;
+  S.measures.forEach(M => {
+    doc.text([M.name, new Date(M.timestamp).toLocaleDateString(), M.cov+'%', (M.area||'N/A')+'', M.health+'%'].join(' | '), 10, Y);
+    Y += 8;
+  });
+  doc.save(`CoverScope-All-${new Date().toISOString().split('T')[0]}.pdf`);
+}
+
+function exportCurrentPDF() {
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF();
+  if (!S.ana.on) return;
+  const M = {
+    name: 'Current Measurement',
+    timestamp: new Date().toISOString(),
+    cov: S.ana.cov,
+    area: S.ana.area,
+    tarea: S.ana.tarea,
+    health: S.ana.health
+  };
+  doc.setFontSize(18); doc.text('CoverScope - Current Measurement', 105, 20, {align:'center'});
+  doc.setFontSize(10); doc.text(new Date().toLocaleDateString(), 105, 30, {align:'center'});
+  let Y = 45;
+  doc.setFontSize(12);
+  doc.text('Coverage: ' + M.cov + '%', 10, Y); Y += 10;
+  doc.text('Plant Area: ' + (M.area || 'N/A'), 10, Y); Y += 10;
+  doc.text('Total Area: ' + (M.tarea || 'N/A'), 10, Y); Y += 10;
+  doc.text('Health: ' + M.health + '%', 10, Y);
+  doc.save(`CoverScope-Current-${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
 // ─── Volume ───────────────────────────────────────────────────────────────────
