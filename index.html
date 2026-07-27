@@ -1611,8 +1611,8 @@ function renderOverlay() {
       const r = d[i], g = d[i+1], b = d[i+2];
       const brightness = (r + g + b) / 3;
       
-      // Skip very dark pixels (likely shadows or black)
-      if (brightness < 15) {
+      // Skip very dark pixels (likely shadows or black) - lowered from 15 to 8 for better dark green detection
+      if (brightness < 8) {
         X.fillStyle = 'rgba(0,0,0,0.35)';
         X.fillRect(x, y, 1, 1);
         continue;
@@ -1637,30 +1637,32 @@ function renderOverlay() {
       // Check if green is significantly higher than both red and blue
       const greenDominance = GD && (g - r) > 10 && (g - b) > 10;
       
-      // HSV-based plant detection (RECOMMENDED - catches more plant types)
+      // HSV-based plant detection - EXTENDED RANGE to catch dark greens and yellow-greens
       const { h, s: saturation, v: value } = rgbToHsv(r, g, b);
-      // Tighter green range with stricter saturation bounds to reduce false positives
-      const hsvGreen = h >= 50 && h <= 170 && saturation > 0.15 && saturation < 0.85 && value > 0.12;
+      // Wider hue range (30-190) to catch yellow-greens, lower saturation min to 0.05 for dark/muted greens
+      const hsvGreen = h >= 30 && h <= 190 && saturation > 0.05 && saturation < 0.95 && value > 0.05;
       
-      // Bright green method - more strict
-      const brightGreen = g > 120 && r < g*0.8 && b < g*0.8;
+      // Bright green method - adjusted for yellow-green and dark green
+      const brightGreen = g > 80 && r < g*0.90 && b < g*0.90;
       
-      // Balanced thresholds - not too strict, not too lenient
+      // Balanced thresholds
       const baseThreshold = T; // Back to original threshold
       const brightnessFactor = Math.min(1.2, Math.max(0.8, 1 + (255 - brightness) / 255 * 0.2));
       const effectiveThreshold = baseThreshold * brightnessFactor;
       
-      // Multi-method voting system: require 2 votes for better accuracy
+      // Multi-method voting system with dynamic threshold - more lenient for dark and yellow-green
       const votes = [];
       votes.push(hsvGreen);
-      votes.push(enhanced > effectiveThreshold && GD);
-      votes.push(exG > effectiveThreshold * 0.8 && GD && g > 80);
-      votes.push(exG_norm > 20 && greenDominance);
-      votes.push(cive > 0.2 && g > 80);  // Increased CIVE threshold
-      votes.push(grndvi > 0.2 && GD);  // GRNDVI with higher threshold
-      votes.push(vari > 0.2 && GD && g > 80);  // VARI with higher threshold
-      votes.push(exgr > 5 && greenDominance);  // ExGR with threshold
+      votes.push(enhanced > effectiveThreshold * 0.8 && GD);  // More lenient threshold
+      votes.push(exG > effectiveThreshold * 0.6 && GD && g > 40);  // Lowered threshold and g requirement
+      votes.push(exG_norm > 10 && greenDominance);  // Lowered threshold significantly
+      votes.push(cive > 0.10 && g > 40);  // Lowered threshold and g requirement
+      votes.push(grndvi > 0.10 && GD);  // Lowered threshold
+      votes.push(vari > 0.10 && GD && g > 40);  // Lowered threshold and g requirement
+      votes.push(exgr > 0 && greenDominance);  // ExGR - any positive value
       votes.push(brightGreen);
+      // Additional vote for yellow-green detection (lower hue, high green)
+      votes.push(h >= 30 && h <= 80 && g > 70 && r < g && b < g);
       
       const plantVotes = votes.filter(v => v).length;
       // Require at least 2 methods to agree (reduces false positives)
@@ -2242,6 +2244,13 @@ function getThreshold() {
   return 0.03 + (0.22 - 0.03) * (100 - S.ana.sens) / 100;
 }
 
+// Get required votes based on sensitivity setting
+function getRequiredVotes() {
+  if (S.ana.sens >= 67) return 1; // Aggressive: 1 vote
+  if (S.ana.sens <= 33) return 3; // Conservative: 3 votes
+  return 2; // Moderate: 2 votes (default)
+}
+
 function updateSens() {
   S.ana.sens = parseInt(SS.value);
   const labels = ['Aggressive','Moderate','Conservative'];
@@ -2287,8 +2296,8 @@ function performAnalysis() {
     const r = o[i], g = o[i+1], b = o[i+2];
     const brightness = (r + g + b) / 3;
     
-    // Skip very dark pixels (likely shadows or black)
-    if (brightness < 15) continue;
+    // Skip very dark pixels (likely shadows or black) - lowered from 15 to 8 for better dark green detection
+    if (brightness < 8) continue;
     
     // Calculate multiple vegetation indices
     const exG = (2*g - r - b) / 255;
@@ -2309,34 +2318,37 @@ function performAnalysis() {
     // Check if green is significantly higher than both red and blue
     const greenDominance = GD && (g - r) > 10 && (g - b) > 10;
     
-    // HSV-based plant detection (RECOMMENDED - catches more plant types)
+    // HSV-based plant detection - EXTENDED RANGE to catch dark greens and yellow-greens
     const { h, s: saturation, v: value } = rgbToHsv(r, g, b);
-    // Tighter green range with stricter saturation bounds to reduce false positives
-    const hsvGreen = h >= 50 && h <= 170 && saturation > 0.15 && saturation < 0.85 && value > 0.12;
+    // Wider hue range (30-190) to catch yellow-greens, lower saturation min to 0.05 for dark/muted greens
+    const hsvGreen = h >= 30 && h <= 190 && saturation > 0.05 && saturation < 0.95 && value > 0.05;
     
-    // Bright green method - more strict
-    const brightGreen = g > 120 && r < g*0.8 && b < g*0.8;
+    // Bright green method - adjusted for yellow-green and dark green
+    const brightGreen = g > 80 && r < g*0.90 && b < g*0.90;
     
-    // Balanced thresholds - not too strict, not too lenient
+    // Balanced thresholds
     const baseThreshold = T; // Back to original threshold
     const brightnessFactor = Math.min(1.2, Math.max(0.8, 1 + (255 - brightness) / 255 * 0.2));
     const effectiveThreshold = baseThreshold * brightnessFactor;
     
-    // Multi-method voting system: require 2 votes for better accuracy
+    // Multi-method voting system with dynamic threshold - more lenient for dark and yellow-green
     const votes = [];
     votes.push(hsvGreen);
-    votes.push(enhanced > effectiveThreshold && GD);
-    votes.push(exG > effectiveThreshold * 0.8 && GD && g > 80);
-    votes.push(exG_norm > 20 && greenDominance);
-    votes.push(cive > 0.2 && g > 80);  // Increased CIVE threshold
-    votes.push(grndvi > 0.2 && GD);  // GRNDVI with higher threshold
-    votes.push(vari > 0.2 && GD && g > 80);  // VARI with higher threshold
-    votes.push(exgr > 5 && greenDominance);  // ExGR with threshold
+    votes.push(enhanced > effectiveThreshold * 0.8 && GD);  // More lenient threshold
+    votes.push(exG > effectiveThreshold * 0.6 && GD && g > 40);  // Lowered threshold and g requirement
+    votes.push(exG_norm > 10 && greenDominance);  // Lowered threshold significantly
+    votes.push(cive > 0.10 && g > 40);  // Lowered threshold and g requirement
+    votes.push(grndvi > 0.10 && GD);  // Lowered threshold
+    votes.push(vari > 0.10 && GD && g > 40);  // Lowered threshold and g requirement
+    votes.push(exgr > 0 && greenDominance);  // ExGR - any positive value
     votes.push(brightGreen);
+    // Additional vote for yellow-green detection (lower hue, high green)
+    votes.push(h >= 30 && h <= 80 && g > 70 && r < g && b < g);
     
     const plantVotes = votes.filter(v => v).length;
-    // Require at least 2 methods to agree (reduces false positives)
-    const isPlant = plantVotes >= 2;
+    // Dynamic voting threshold based on sensitivity
+    const requiredVotes = getRequiredVotes();
+    const isPlant = plantVotes >= requiredVotes;
     
     if (isPlant) {
       PC++;
@@ -2668,6 +2680,78 @@ function exportAllPDF() {
   if (PN) PN.value = '';
 }
 
+// Helper function to create untransformed canvas snapshot for PDF export
+function createOverlaySnapshot() {
+  if (!S.working || !S.ana.on) return null;
+  
+  const I = S.working;
+  const tmpCanvas = document.createElement('canvas');
+  tmpCanvas.width = I.width;
+  tmpCanvas.height = I.height;
+  const tmpCtx = tmpCanvas.getContext('2d');
+  
+  // Draw original image
+  tmpCtx.drawImage(I, 0, 0);
+  const imgData = tmpCtx.getImageData(0, 0, I.width, I.height);
+  const d = imgData.data;
+  const T = getThreshold();
+  
+  // Apply overlay detection without transformations
+  for (let y = 0; y < I.height; y++) {
+    for (let x = 0; x < I.width; x++) {
+      const i = (y * I.width + x) * 4;
+      const r = d[i], g = d[i+1], b = d[i+2];
+      const brightness = (r + g + b) / 3;
+      
+      if (brightness < 8) {
+        d[i+3] = 135; // Semi-transparent black for dark areas
+        continue;
+      }
+      
+      const exG = (2*g - r - b) / 255;
+      const exG_norm = (2*g - r - b);
+      const grndvi = (g - r) / (g + r + 0.0001);
+      const vari = (g - r) / (g + r - b + 0.0001);
+      const exgr = (2*g - r - b) - (1.4*r - g);
+      const greenRatio = g / (r + b + 1);
+      const enhanced = exG * greenRatio;
+      const GD = g > r && g > b;
+      const greenDominance = GD && (g - r) > 10 && (g - b) > 10;
+      const { h, s: saturation, v: value } = rgbToHsv(r, g, b);
+      const hsvGreen = h >= 30 && h <= 190 && saturation > 0.05 && saturation < 0.95 && value > 0.05;
+      const brightGreen = g > 80 && r < g*0.90 && b < g*0.90;
+      
+      const baseThreshold = T;
+      const brightnessFactor = Math.min(1.2, Math.max(0.8, 1 + (255 - brightness) / 255 * 0.2));
+      const effectiveThreshold = baseThreshold * brightnessFactor;
+      
+      const votes = [];
+      votes.push(hsvGreen);
+      votes.push(enhanced > effectiveThreshold * 0.8 && GD);
+      votes.push(exG > effectiveThreshold * 0.6 && GD && g > 40);
+      votes.push(exG_norm > 10 && greenDominance);
+      votes.push(cive > 0.10 && g > 40);
+      votes.push(grndvi > 0.10 && GD);
+      votes.push(vari > 0.10 && GD && g > 40);
+      votes.push(exgr > 0 && greenDominance);
+      votes.push(brightGreen);
+      votes.push(h >= 30 && h <= 80 && g > 70 && r < g && b < g);
+      
+      const plantVotes = votes.filter(v => v).length;
+      const requiredVotes = getRequiredVotes();
+      const isPlant = plantVotes >= requiredVotes;
+      
+      if (isPlant) {
+        d[i] = 107; d[i+1] = 158; d[i+2] = 122; d[i+3] = 140; // rgba(107, 158, 122, 0.55)
+      } else {
+        d[i+3] = 64; // rgba(0,0,0,0.25)
+      }
+    }
+  }
+  tmpCtx.putImageData(imgData, 0, 0);
+  return tmpCanvas;
+}
+
 function exportCurrentPDF() {
   const {jsPDF} = window.jspdf;
   const doc = new jsPDF();
@@ -2709,8 +2793,16 @@ function exportCurrentPDF() {
     const imgWidth = 85;
     const imgHeight = 55;
     
-    const originalImg = IMC.toDataURL('image/jpeg', 0.85);
-    const overlayImg = OC.toDataURL('image/jpeg', 0.85);
+    // Create temporary canvases for untransformed images
+    const originalCanvas = document.createElement('canvas');
+    originalCanvas.width = S.working.width;
+    originalCanvas.height = S.working.height;
+    const origCtx = originalCanvas.getContext('2d');
+    origCtx.drawImage(S.working, 0, 0);
+    const originalImg = originalCanvas.toDataURL('image/jpeg', 0.85);
+    
+    const overlayCanvas = createOverlaySnapshot();
+    const overlayImg = overlayCanvas ? overlayCanvas.toDataURL('image/jpeg', 0.85) : '';
     
     // Add images with white background and border
     doc.setFillColor(255, 255, 255);
