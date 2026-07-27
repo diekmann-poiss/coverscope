@@ -475,32 +475,48 @@ header{
   font-size: 0.9rem;
 }
 
-.slider-lbl span:first-child{color: var(--text-muted);}
+.slider-lbl span:first-child{color: var(--text-muted); font-weight: 500;}
 .slider-lbl span:last-child{color: var(--primary); font-weight: 600;}
+
+.slider-ctr{
+  background: var(--bg-card);
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  margin: 12px 0;
+}
 
 input[type="range"]{
   width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--bg-card);
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right, var(--primary-light), var(--primary-dark));
   outline: none;
   -webkit-appearance: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 input[type="range"]::-webkit-slider-thumb{
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--primary);
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 3px 8px rgba(107, 158, 122, 0.4);
   transition: var(--transition);
+  border: 3px solid white;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover{
-  transform: scale(1.1);
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(107, 158, 122, 0.5);
+}
+
+input[type="range"]::-webkit-slider-thumb:active{
+  transform: scale(1.2);
+  background: var(--primary-dark);
 }
 
 input[type="range"]::-moz-range-thumb{
@@ -1106,7 +1122,7 @@ footer a:hover{
 </header>
 
 <div class="tab-nav">
-<button class="tab-btn active" data-tab="analyze">🔍 Analyze</button>
+<button class="tab-btn active" data-tab="analyze">🔍 Analyse</button>
 <button class="tab-btn" data-tab="history">📜 History</button>
 <button class="tab-btn" data-tab="compare">📊 Compare</button>
 <button class="tab-btn" onclick="openMethods()">ℹ️ Methods</button>
@@ -1138,7 +1154,7 @@ footer a:hover{
 
 <div class="cal-sec" id="calSec" style="display:none">
 <div class="cal-hdr"><h3>📏 Calibrate Scale (optional)</h3><span class="status-badge status-cal" id="calStatus" style="display:none"></span></div>
-<p class="cal-info">Tap two points of known length, then enter distance. Required for real-world area calculations. Skip to analyze pixel coverage only.</p>
+<p class="cal-info">Tap two points of known length, then enter distance. Required for real-world area calculations. Skip to analyse pixel coverage only.</p>
 <div class="cal-ctrls">
 <div class="cal-inpgrp">
 <input type="number" id="calDist" class="cal-inp" placeholder="Enter distance" step="0.01" min="0.01">
@@ -1153,10 +1169,10 @@ footer a:hover{
 <div class="ana-sec" id="anaSec" style="display:none">
 <div class="cal-hdr"><h3>🔬 Analysis Settings</h3><span class="status-badge status-cal" id="anaStatus" style="display:none">Analyzed</span></div>
 <div class="slider-ctr">
-<div class="slider-lbl"><span>Sensitivity</span><span id="sensVal">Moderate</span></div>
+<div class="slider-lbl"><span>🎚️ Sensitivity</span><span id="sensVal">Moderate</span></div>
 <input type="range" id="sensSlider" min="0" max="100" value="50" oninput="updateSens()">
 </div>
-<p style="font-size:.8rem;color:var(--ts);margin-bottom:15px">Aggressive = catches faint green &nbsp;|&nbsp; Conservative = only strong green</p>
+<p style="font-size:.85rem;color:var(--text-muted);margin-top:8px;margin-bottom:16px;font-weight:400">Aggressive = catches faint green | Conservative = only strong green</p>
 <div class="tool-sel">
 <button class="tool-btn" id="targetBtn" onclick="toggleTarget()">🎯 Target Area</button>
 <button class="tool-btn" id="squareBtn" onclick="toggleSquare()">📐 1m² Square</button>
@@ -1175,8 +1191,9 @@ footer a:hover{
 </div>
 </div>
 <div class="btn-grp">
-<button class="btn btn-p" id="analyzeBtn" onclick="analyze()">🔍 Analyze</button>
+<button class="btn btn-p" id="analyzeBtn" onclick="analyze()">🔍 Analyse</button>
 <button class="btn btn-s" id="toggleBtn" onclick="toggleOverlay()" disabled>👁️ Toggle Overlay</button>
+<input type="text" id="measureName" class="cal-inp" placeholder="Measurement name" style="flex: 1; min-width: 150px;" onkeypress="if(event.key==='Enter') saveMeasure()">
 <button class="btn btn-p" id="saveBtn" onclick="saveMeasure()" disabled>💾 Save</button>
 </div>
 </div>
@@ -1197,7 +1214,7 @@ footer a:hover{
 <input type="number" id="hNE" class="cal-inp" placeholder="NE" step="0.01" min="0" oninput="volChanged()">
 <input type="number" id="hSE" class="cal-inp" placeholder="SE" step="0.01" min="0" oninput="volChanged()">
 <input type="number" id="hSW" class="cal-inp" placeholder="SW" step="0.01" min="0" oninput="volChanged()">
-<input type="number" id="hC" class="cal-inp" placeholder="Center" step="0.01" min="0" oninput="volChanged()">
+<input type="number" id="hC" class="cal-inp" placeholder="Centre" step="0.01" min="0" oninput="volChanged()">
 </div>
 <button class="btn btn-s" onclick="calcVol()" style="margin-top:10px">Calculate Volume</button>
 <div class="vol-res" id="volRes">
@@ -1246,10 +1263,10 @@ footer a:hover{
 
 <h4>1. Excess-Green Index (ExG)</h4>
 <p><strong>Formula:</strong> <span class="formula">ExG = (2 × Green) − Red − Blue</span></p>
-<p><strong>Source:</strong> Woebbecke et al. (1995) <a href="https://www.sciencedirect.com/science/article/abs/pii/S0168169908001063" target="_blank" style="color:var(--primary)">"Verification of color vegetation indices for automated crop imaging applications"</a> (Computers and Electronics in Agriculture)</p>
-<p><strong>Purpose:</strong> Primary vegetation detection index. ExG amplifies greenness by leveraging color-component differences, providing a near-binary intensity image that clearly outlines plant regions. Highly effective for distinguishing vegetation from soil and background.</p>
+<p><strong>Source:</strong> Woebbecke et al. (1995) <a href="https://www.sciencedirect.com/science/article/abs/pii/S0168169908001063" target="_blank" style="color:var(--primary)">"Verification of colour vegetation indices for automated crop imaging applications"</a> (Computers and Electronics in Agriculture)</p>
+<p><strong>Purpose:</strong> Primary vegetation detection index. ExG amplifies greenness by leveraging colour-component differences, providing a near-binary intensity image that clearly outlines plant regions. Highly effective for distinguishing vegetation from soil and background.</p>
 
-<h4>2. Color Index of Vegetation Extraction (CIVE)</h4>
+<h4>2. Colour Index of Vegetation Extraction (CIVE)</h4>
 <p><strong>Formula:</strong> <span class="formula">CIVE = (Green − Red) / (Green + Red + Blue)</span></p>
 <p><strong>Source:</strong> Kataoka et al. (2003) <a href="https://www.sciencedirect.com/science/article/abs/pii/S0168169917304489" target="_blank" style="color:var(--primary)">"A universal estimation model of fractional vegetation cover"</a> (Remote Sensing of Environment)</p>
 <p><strong>Purpose:</strong> Enhances crop vs. background discrimination. Particularly effective for fractional vegetation cover (FVC) estimation across different crop types. Note: We use the original CIVE formula without the +0.5 offset for better sensitivity.</p>
@@ -1274,7 +1291,7 @@ footer a:hover{
 <p><strong>Source:</strong> Custom enhancement combining ExG with green ratio for improved sensitivity.</p>
 <p><strong>Purpose:</strong> Weighted ExG that accounts for relative green intensity, improving detection in mixed lighting conditions.</p>
 
-<h3>HSV Color Space Detection</h3>
+<h3>HSV Colour Space Detection</h3>
 <p><strong>Hue Range:</strong> 50°–170° (captures green to yellow-green vegetation)</p>
 <p><strong>Saturation:</strong> 0.15–0.85 (filters out grays/near-whites and oversaturated artificial colors)</p>
 <p><strong>Value:</strong> > 0.12 (filters out very dark shadows)</p>
@@ -1298,7 +1315,7 @@ footer a:hover{
 <p><strong>Note:</strong> All methods must also pass green dominance check (Green > Red AND Green > Blue with sufficient margin).</p>
 
 <h3>Green-Dominance Check</h3>
-<p>In addition to color indices, we verify: <strong>Green &gt; Red AND Green &gt; Blue</strong></p>
+<p>In addition to colour indices, we verify: <strong>Green &gt; Red AND Green &gt; Blue</strong></p>
 <p><strong>Source:</strong> Standard practice in RGB vegetation detection to ensure green channel dominance, as healthy vegetation reflects more green light than red or blue.</p>
 
 <h3>Adaptive Thresholding</h3>
@@ -1320,7 +1337,7 @@ footer a:hover{
 
 <h3>Health Index</h3>
 <p><strong>Formula:</strong> <span class="formula">Health = (Average Saturation + Average Green Value) / 2</span></p>
-<p>Computes average color saturation and green channel intensity across detected plant pixels, providing a relative health metric (0-100%).</p>
+<p>Computes average colour saturation and green channel intensity across detected plant pixels, providing a relative health metric (0-100%).</p>
 
 <h3>Manual Correction</h3>
 <ul><li><strong>Add Mode:</strong> Paint missed plants (false negatives)</li><li><strong>Erase Mode:</strong> Remove false positives</li></ul>
@@ -1340,7 +1357,7 @@ footer a:hover{
 
 <h3>📖 References</h3>
 <ol style="padding-left:20px;color:var(--ts)">
-<li style="margin-bottom:8px">Woebbecke, D. M., Meyer, G. E., Von Bargen, K., &amp; Mortensen, D. A. (1995). <a href="https://www.sciencedirect.com/science/article/abs/pii/S0168169908001063" target="_blank" style="color:var(--primary)">Verification of color vegetation indices for automated crop imaging applications</a>. <em>Computers and Electronics in Agriculture</em>, 23(2), 139-151.</li>
+<li style="margin-bottom:8px">Woebbecke, D. M., Meyer, G. E., Von Bargen, K., &amp; Mortensen, D. A. (1995). <a href="https://www.sciencedirect.com/science/article/abs/pii/S0168169908001063" target="_blank" style="color:var(--primary)">Verification of colour vegetation indices for automated crop imaging applications</a>. <em>Computers and Electronics in Agriculture</em>, 23(2), 139-151.</li>
 
 <li style="margin-bottom:8px">Kataoka, T., Wu, B., &amp; Ikeda, H. (2003). <a href="https://www.sciencedirect.com/science/article/abs/pii/S0168169917304489" target="_blank" style="color:var(--primary)">A universal estimation model of fractional vegetation cover for different crops using digital photography</a>. <em>Remote Sensing of Environment</em>, 86(3), 390-401.</li>
 
@@ -1405,6 +1422,7 @@ const BSV  = document.getElementById('brushSizeVal');
 const ANB  = document.getElementById('analyzeBtn');
 const TOB  = document.getElementById('toggleBtn');
 const SAVB = document.getElementById('saveBtn');
+const MN   = document.getElementById('measureName');
 const CP   = document.getElementById('covPct');
 const PA   = document.getElementById('plantArea');
 const TA   = document.getElementById('totalArea');
@@ -1477,7 +1495,7 @@ function processImage(f) {
       CALSEC.style.display = 'block';
       // FIX: show analysis section immediately after image loads
       ANASEC.style.display = 'block';
-      showSuccess('Image loaded. Calibrate for real-world area, or click Analyze now.');
+      showSuccess('Image loaded. Calibrate for real-world area, or click Analyse now.');
     };
     I.onerror = () => showError('Could not load image.');
     I.src = e.target.result;
@@ -1561,7 +1579,7 @@ function renderOverlay() {
   X.translate(-S.offset.x, -S.offset.y);
   X.scale(S.zoom, S.zoom);
 
-  // Enhanced plant recognition with HSV color space
+  // Enhanced plant recognition with HSV colour space
   for (let y = 0; y < I.height; y++) {
     for (let x = 0; x < I.width; x++) {
       const i = (y * I.width + x) * 4;
@@ -1788,7 +1806,7 @@ function completeCalibration() {
   PCI.style.display = 'none';
   SCB.textContent = 'Re-calibrate';
   IMC.style.cursor = '';
-  showSuccess('Scale calibrated! Now click Analyze.');
+  showSuccess('Scale calibrated! Now click Analyse.');
 }
 
 function clearCal() {
@@ -1813,7 +1831,7 @@ function toggleTarget() {
     if (!S.working) return;
     S.target = {on:true, x:50, y:50, w:Math.min(200, S.working.width-60), h:Math.min(200, S.working.height-60), drag:false};
     S.square.on = false; SBTN.classList.remove('active');
-    showSuccess('Drag inside image to draw target area, then Analyze.');
+    showSuccess('Drag inside image to draw target area, then Analyse.');
   } else {
     S.target.on = false;
   }
@@ -1832,7 +1850,7 @@ function toggleSquare() {
     S.square.w = sz; S.square.h = sz;
     S.target.on = false; TBTN.classList.remove('active');
     VS.classList.add('active');
-    showSuccess('Drag the square to position it, then Analyze.');
+    showSuccess('Drag the square to position it, then Analyse.');
   } else {
     VS.classList.remove('active');
     VR.style.display = 'none';
@@ -2239,7 +2257,7 @@ function performAnalysis() {
   const TC = R.width * R.height;
   let PC = 0, TS = 0, TV = 0;
 
-  // Enhanced plant detection with HSV color space and multi-method voting
+  // Enhanced plant detection with HSV colour space and multi-method voting
   for (let i = 0; i < o.length; i += 4) {
     const r = o[i], g = o[i+1], b = o[i+2];
     const brightness = (r + g + b) / 3;
@@ -2345,9 +2363,11 @@ function performAnalysis() {
 // ─── Save / history ───────────────────────────────────────────────────────────
 function saveMeasure() {
   if (!S.ana.on) { showError('Run analysis first.'); return; }
+  const nameInput = document.getElementById('measureName');
+  const customName = nameInput.value.trim();
   const M = {
     id: Date.now(),
-    name: 'M' + (S.measures.length + 1),
+    name: customName || 'M' + (S.measures.length + 1),
     timestamp: new Date().toISOString(),
     cov: S.ana.cov, px: S.ana.pixels, tpx: S.ana.total,
     area: S.ana.area, tarea: S.ana.tarea, health: S.ana.health,
@@ -2359,6 +2379,7 @@ function saveMeasure() {
   localStorage.setItem('cs_measures', JSON.stringify(S.measures));
   showSuccess('Measurement saved!');
   renderHistory();
+  nameInput.value = '';
 }
 
 function loadMeasurements() {
@@ -2371,7 +2392,7 @@ function loadMeasurements() {
 
 function renderHistory() {
   if (!S.measures.length) {
-    HL.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><h3>No Measurements Yet</h3><p>Analyze and save to see results here.</p></div>';
+    HL.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📜</div><h3>No Measurements Yet</h3><p>Analyse and save to see results here.</p></div>';
     CCT.style.display = 'none'; return;
   }
   let H = '';
