@@ -1879,6 +1879,9 @@ function toggleTarget() {
     showSuccess('Drag inside image to draw target area. Use Window button to punch out exclusion zones.');
   } else {
     S.target.on = false;
+    S.target.windowDrag = false;
+    S.target.windowStart = null;
+    S.target.windowCurrent = null;
   }
   TBTN.classList.toggle('active', S.target.on);
   PBTN.style.display = S.target.on ? 'inline-flex' : 'none';
