@@ -2351,7 +2351,7 @@ function performAnalysis() {
   if (S.cal.mpp) {
     // Calculate area based on unit
     let areaMultiplier = 1;
-    let areaUnit = S.cal.unit;
+    let areaUnit = 'm²';
     
     if (S.cal.unit === 'cm') {
       // mpp is in meters per pixel, convert to cm per pixel
@@ -2365,10 +2365,12 @@ function performAnalysis() {
     
     S.ana.area  = Math.round(PC * areaMultiplier * 100) / 100;
     S.ana.tarea = Math.round(TC * areaMultiplier * 100) / 100;
+    S.ana.areaUnit = areaUnit;
     PA.textContent = S.ana.area  + ' ' + areaUnit;
     TA.textContent = S.ana.tarea + ' ' + areaUnit;
   } else {
     S.ana.area = 0; S.ana.tarea = 0;
+    S.ana.areaUnit = 'm²';
     PA.textContent = 'calibrate for area';
     TA.textContent = 'calibrate for area';
   }
@@ -2391,6 +2393,7 @@ function saveMeasure() {
     timestamp: new Date().toISOString(),
     cov: S.ana.cov, px: S.ana.pixels, tpx: S.ana.total,
     area: S.ana.area, tarea: S.ana.tarea,
+    areaUnit: S.ana.areaUnit || 'm²',
     unit: S.cal.unit || 'm',
     sens: S.ana.sens,
     region: S.target.on ? 'target' : S.square.on ? 'square' : 'full'
@@ -2405,7 +2408,15 @@ function saveMeasure() {
 function loadMeasurements() {
   try {
     const saved = localStorage.getItem('cs_measures');
-    if (saved) S.measures = JSON.parse(saved);
+    if (saved) {
+      S.measures = JSON.parse(saved);
+      // Add areaUnit to old measurements
+      S.measures.forEach(M => {
+        if (!M.areaUnit) {
+          M.areaUnit = 'm²';
+        }
+      });
+    }
   } catch(e) { S.measures = []; }
   renderHistory();
 }
@@ -2475,7 +2486,7 @@ function exportExcel() {
   if (!SL.length) return;
   const WB = XLSX.utils.book_new();
   const D  = [['Measurement','Date','Coverage %','Plant Area','Total Area']];
-  SL.forEach(M => D.push([M.name, new Date(M.timestamp).toLocaleString(), M.cov+'%', M.area||'N/A', M.tarea||'N/A']));
+  SL.forEach(M => D.push([M.name, new Date(M.timestamp).toLocaleString(), M.cov+'%', (M.area||'N/A') + ' ' + (M.areaUnit||'m²'), (M.tarea||'N/A') + ' ' + (M.areaUnit||'m²')]));
   const WS = XLSX.utils.aoa_to_sheet(D);
   XLSX.utils.book_append_sheet(WB, WS, 'Comparison');
   XLSX.writeFile(WB, `CoverScope-${new Date().toISOString().split('T')[0]}.xlsx`);
@@ -2496,7 +2507,7 @@ function exportPDF() {
   doc.setFontSize(9);
   doc.text('Measurement | Date | Coverage | Area', 10, Y); Y += 8;
   SL.forEach(M => {
-    doc.text([M.name, new Date(M.timestamp).toLocaleDateString(), M.cov+'%', (M.area||'N/A')+''].join(' | '), 10, Y);
+    doc.text([M.name, new Date(M.timestamp).toLocaleDateString(), M.cov+'%', (M.area||'N/A') + ' ' + (M.areaUnit||'m²')].join(' | '), 10, Y);
     Y += 8;
   });
   doc.save(fileName + '.pdf');
@@ -2517,7 +2528,7 @@ function exportAllPDF() {
   doc.setFontSize(9);
   doc.text('Measurement | Date | Coverage | Area', 10, Y); Y += 8;
   S.measures.forEach(M => {
-    doc.text([M.name, new Date(M.timestamp).toLocaleDateString(), M.cov+'%', (M.area||'N/A')+''].join(' | '), 10, Y);
+    doc.text([M.name, new Date(M.timestamp).toLocaleDateString(), M.cov+'%', (M.area||'N/A') + ' ' + (M.areaUnit||'m²')].join(' | '), 10, Y);
     Y += 8;
   });
   doc.save(fileName + '.pdf');
@@ -2571,8 +2582,8 @@ function exportCurrentPDF() {
   
   doc.setFontSize(12);
   doc.text('Coverage: ' + M.cov + '%', 10, Y); Y += 10;
-  doc.text('Plant Area: ' + (M.area || 'N/A'), 10, Y); Y += 10;
-  doc.text('Total Area: ' + (M.tarea || 'N/A'), 10, Y);
+  doc.text('Plant Area: ' + (M.area || 'N/A') + ' ' + (M.areaUnit || 'm²'), 10, Y); Y += 10;
+  doc.text('Total Area: ' + (M.tarea || 'N/A') + ' ' + (M.areaUnit || 'm²'), 10, Y);
   
   doc.save(fileName + '.pdf');
   if (PCN) PCN.value = '';
@@ -2593,7 +2604,7 @@ function clearAll() {
   S.original = null; S.working = null;
   S.offset = {x:0,y:0}; S.zoom = 1;
   S.cal = {on:false,points:[],dist:null,unit:'m',mpp:null};
-  S.ana = {on:false,sens:50,pixels:0,total:0,cov:0,area:0,tarea:0};
+  S.ana = {on:false,sens:50,pixels:0,total:0,cov:0,area:0,tarea:0,areaUnit:'m²'};
   S.target = {on:false,x:0,y:0,w:0,h:0,drag:false};
   S.square = {on:false,x:0,y:0,w:100,h:100,drag:false};
   S.volume = {on:false}; S.brush = {on:'off',mode:'add',size:10};
