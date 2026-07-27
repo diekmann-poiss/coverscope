@@ -1284,93 +1284,33 @@ footer a:hover{
 <p style="font-family: monospace; background: var(--bg-input); padding: 12px; border-radius: var(--radius-xs); border: 1px solid var(--border)">Poiss, M. (2026) <em>CoverScope</em> [Software]. Available at: https://github.com/diekmann-poiss/coverscope (Accessed: <span id="accessDate" style="font-family: inherit">DD Month YYYY</span>)</p>
 <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px"><em>Note: Replace the access date with the date you accessed this software.</em></p>
 
-<h3>Scientific Foundation</h3>
-<p>The plant detection methodology is based on peer-reviewed research.</p>
+<h3>Methodology</h3>
+<p><strong>Detection uses a multi-method voting ensemble with 10 indices from peer-reviewed vegetation remote sensing research.</strong> A pixel is classified as plant when it receives sufficient votes (1 Aggressive / 2 Moderate / 3 Conservative) AND green dominates red and blue channels.</p>
 
-<h3>Vegetation Indices</h3>
+<h4>RGB Vegetation Indices</h4>
+<p><strong>ExG:</strong> (2G−R−B)/255 (Woebbecke 1995) — primary greenness amplification. <strong>ExG_norm:</strong> 2G−R−B (non-normalized).</p>
+<p><strong>CIVE:</strong> (G−R)/(G+R+B) (Kataoka 2003) — crop/background discrimination, brightness-invariant.</p>
+<p><strong>GRNDVI:</strong> (G−R)/(G+R) — RGB-adapted NDVI for green-red contrast (Gitelson).</p>
+<p><strong>VARI:</strong> (G−R)/(G+R−B) (Gitelson 2002) — atmospherically resistant for stable outdoor detection.</p>
+<p><strong>ExGR:</strong> (2G−R−B)−(1.4R−G) (Mexson 2010) — ExG with red suppression for soil/flower separation.</p>
+<p><strong>Enhanced ExG:</strong> ExG×(G/(R+B+1)) — ExG weighted by green proportion.</p>
 
-<h4>1. Excess-Green Index (ExG)</h4>
-<p><strong>Formula:</strong> <span class="formula">ExG = (2 × Green) − Red − Blue</span></p>
-<p><strong>Source:</strong> Woebbecke et al. (1995)</p>
-<p><strong>Purpose:</strong> Primary vegetation detection. Amplifies greenness, creating near-binary plant/background separation.</p>
+<h4>HSV Colour Space</h4>
+<p>Hue 30°–190° (green to yellow-green), Saturation >0.05 (catches dark greens), Value >0.05.</p>
 
-<h4>2. Colour Index of Vegetation Extraction (CIVE)</h4>
-<p><strong>Formula:</strong> <span class="formula">CIVE = (Green − Red) / (Green + Red + Blue)</span></p>
-<p><strong>Source:</strong> Kataoka et al. (2003)</p>
-<p><strong>Purpose:</strong> Enhances crop vs. background discrimination for fractional vegetation cover estimation.</p>
+<h4>Additional Methods</h4>
+<p><strong>Bright Green:</strong> G>80 & R<0.9G & B<0.9G. <strong>Yellow-Green:</strong> Hue 30°–80° & G>70 & G>R & G>B.</p>
 
-<h4>3. Green-Red Normalized Difference (GRNDVI)</h4>
-<p><strong>Formula:</strong> <span class="formula">GRNDVI = (Green − Red) / (Green + Red)</span></p>
-<p><strong>Source:</strong> Adapted from NDVI methodology</p>
-<p><strong>Purpose:</strong> RGB-adapted NDVI measuring green-red contrast.</p>
+<h4>Voting & Thresholds</h4>
+<p>Adaptive thresholds: base = 0.03–0.22 (sensitivity-dependent) × brightness factor. All indices use lenient thresholds for dark/yellow-green detection.</p>
 
-<h4>4. Visible Atmospherically Resistant Index (VARI)</h4>
-<p><strong>Formula:</strong> <span class="formula">VARI = (Green − Red) / (Green + Red − Blue)</span></p>
-<p><strong>Source:</strong> Gitelson et al. (2002)</p>
-<p><strong>Purpose:</strong> Atmospherically resistant index for RGB imagery, stable under varying light.</p>
-
-<h4>5. Excess Green minus Excess Red (ExGR)</h4>
-<p><strong>Formula:</strong> <span class="formula">ExGR = (2×Green − Red − Blue) − (1.4×Red − Green)</span></p>
-<p><strong>Source:</strong> Mexson and Chmielewski (2010)</p>
-<p><strong>Purpose:</strong> Combines ExG with excess red suppression for improved separation.</p>
-
-<h4>6. Enhanced ExG</h4>
-<p><strong>Formula:</strong> <span class="formula">Enhanced = ExG × (Green / (Red + Blue + 1))</span></p>
-<p><strong>Source:</strong> Custom enhancement</p>
-<p><strong>Purpose:</strong> Weighted ExG accounting for relative green intensity.</p>
-
-<h3>HSV Colour Space</h3>
-<p><strong>Parameters:</strong> Hue 50°–170°, Saturation 0.15–0.85, Value > 0.12</p>
-<p><strong>Purpose:</strong> Captures green to yellow-green vegetation while filtering grays and shadows.</p>
-
-<h3>Multi-Method Ensemble</h3>
-<p>Uses a voting system with 9 methods. A pixel is classified as plant only if at least 2 methods agree (configurable via sensitivity slider).</p>
-<p><strong>Methods:</strong></p>
-<ol style="padding-left:20px;color:var(--ts)">
-<li style="margin-bottom:4px">HSV-based green detection</li>
-<li style="margin-bottom:4px">Enhanced ExG with green dominance</li>
-<li style="margin-bottom:4px">ExG with relaxed threshold</li>
-<li style="margin-bottom:4px">Normalized ExG (2G − R − B > 20)</li>
-<li style="margin-bottom:4px">CIVE (> 0.2 with g > 80)</li>
-<li style="margin-bottom:4px">GRNDVI (> 0.2 with green dominance)</li>
-<li style="margin-bottom:4px">VARI (> 0.2 with green dominance)</li>
-<li style="margin-bottom:4px">ExGR (ExGR > 5 with green dominance)</li>
-<li style="margin-bottom:4px">Bright Green (Green > 120)</li>
-</ol>
-<p><strong>Note:</strong> All methods require green > red AND green > blue.</p>
-
-<h3>Adaptive Thresholding</h3>
-<p>The sensitivity slider adjusts the detection threshold based on image brightness and contrast.</p>
-
-<h3>Sensitivity Settings</h3>
-<p><strong>Aggressive:</strong> Catches faint green (higher recall, potential false positives)</p>
-<p><strong>Moderate:</strong> Balanced detection (default)</p>
-<p><strong>Conservative:</strong> Only strong green (higher precision, potential false negatives)</p>
-
-<h3>Scale Calibration</h3>
-<p>Select two points of known distance, enter the distance (cm or m). App calculates metresPerPixel for real-world area measurements.</p>
-<p><em>Note: Only vertical or horizontal lines accepted.</em></p>
-
-<h3>Manual Correction</h3>
-<p><strong>Add Mode:</strong> Paint missed plants. <strong>Erase Mode:</strong> Remove false positives.</p>
-
-<h3>Target Area</h3>
-<p>Focus analysis on a specific region rather than the entire image.</p>
-
-<h3>1m² Reference Square</h3>
-<p>Drag the 1m² reference square for instant coverage percentage of that patch.</p>
-
-<h3>Cubic Volume Estimation</h3>
-<p>Place 1m² square, enter plant heights at 4 corners + center. Volume (m³) = Average Height × Coverage %.</p>
+<h3>Tools</h3>
+<p><strong>Target Area:</strong> Draw green rectangle to define analysis region. <strong>Window:</strong> Draw red rectangle to exclude area from analysis (subtracted from Target). <strong>1m² Square:</strong> Pre-calibrated reference for quick measurements.</p>
+<p><strong>Sensitivity:</strong> Aggressive (1 vote) = max recall | Moderate (2 votes) = balanced | Conservative (3 votes) = max precision.</p>
+<p><strong>Calibration:</strong> Draw line of known distance → enter length → enables real-world area (m²/cm²). Manual: Add/Erase brush for correction.</p>
 
 <h3>📖 Key References</h3>
-<ol style="padding-left:20px;color:var(--ts)">
-<li style="margin-bottom:8px">Woebbecke et al. (1995) <em>Computers and Electronics in Agriculture</em></li>
-<li style="margin-bottom:8px">Kataoka, Wu and Ikeda (2003) <em>Remote Sensing of Environment</em></li>
-<li style="margin-bottom:8px">Gitelson et al. (2002) <em>Geophysical Research Letters</em></li>
-<li style="margin-bottom:8px">Huete (1988) <em>Remote Sensing of Environment</em></li>
-<li style="margin-bottom:8px">Mardanisamani et al. (2022) <em>The Plant Phenome Journal</em></li>
-</ol>
+<p>Woebbecke et al. (1995) <em>Computers & Electronics in Agriculture</em>; Kataoka et al. (2003) <em>Remote Sensing of Environment</em>; Gitelson et al. (2002) <em>Geophysical Research Letters</em>; Mexson & Chmielewski (2010).</p>
 
 </div></div>
 
