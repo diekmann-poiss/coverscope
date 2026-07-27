@@ -1451,6 +1451,24 @@ function init() {
   setupFileUpload();
   loadMeasurements();
   setupTabs();
+  
+  // FIX: attach pointer events to IMC (not DC), so they always fire regardless of brush state
+  IMC.addEventListener('mousedown',  handleMouseDown);
+  IMC.addEventListener('mousemove',  handleMouseMove);
+  IMC.addEventListener('mouseup',    handleMouseUp);
+  IMC.addEventListener('mouseleave', handleMouseUp);
+  IMC.addEventListener('wheel',      handleWheel, {passive:false});
+
+  // Touch events on the wrapper so panning works across the whole canvas area
+  IW.addEventListener('touchstart',  handleTouchStart, {passive:false});
+  IW.addEventListener('touchmove',   handleTouchMove,  {passive:false});
+  IW.addEventListener('touchend',    handleTouchEnd,   {passive:false});
+
+  // FIX: brush drawing also needs to go to DC so strokes appear, but logic lives in IMC handler
+  DC.addEventListener('mousedown',  handleMouseDown);
+  DC.addEventListener('mousemove',  handleMouseMove);
+  DC.addEventListener('mouseup',    handleMouseUp);
+  DC.addEventListener('mouseleave', handleMouseUp);
 }
 
 function setupTabs() {
@@ -2613,24 +2631,6 @@ function closeModal()  { MODAL.classList.remove('active'); }
 // ─── Event listeners ──────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', init);
 document.addEventListener('keydown', handleKeyDown);
-
-// FIX: attach pointer events to IMC (not DC), so they always fire regardless of brush state
-IMC.addEventListener('mousedown',  handleMouseDown);
-IMC.addEventListener('mousemove',  handleMouseMove);
-IMC.addEventListener('mouseup',    handleMouseUp);
-IMC.addEventListener('mouseleave', handleMouseUp);
-IMC.addEventListener('wheel',      handleWheel, {passive:false});
-
-// Touch events on the wrapper so panning works across the whole canvas area
-IW.addEventListener('touchstart',  handleTouchStart, {passive:false});
-IW.addEventListener('touchmove',   handleTouchMove,  {passive:false});
-IW.addEventListener('touchend',    handleTouchEnd,   {passive:false});
-
-// FIX: brush drawing also needs to go to DC so strokes appear, but logic lives in IMC handler
-DC.addEventListener('mousedown',  handleMouseDown);
-DC.addEventListener('mousemove',  handleMouseMove);
-DC.addEventListener('mouseup',    handleMouseUp);
-DC.addEventListener('mouseleave', handleMouseUp);
 </script>
 </body>
 </html>
