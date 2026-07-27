@@ -475,7 +475,7 @@ header{
   font-size: 0.9rem;
 }
 
-.slider-lbl span:first-child{color: var(--text-muted); font-weight: 500;}
+.slider-lbl span:first-child{color: var(--text); font-weight: 500;}
 .slider-lbl span:last-child{color: var(--primary); font-weight: 600;}
 
 .slider-ctr{
@@ -2605,7 +2605,7 @@ function clearAll() {
   CSB.style.display = 'none'; PCI.style.display = 'none';
   SCB.textContent = 'Start Calibration'; CCB.style.display = 'none'; CDI.value = '';
   TOB.disabled = true; SAVB.disabled = true;
-  CP.textContent = '0%'; PA.textContent = '–'; TA.textContent = '–'; HI.textContent = '0%';
+  CP.textContent = '0%'; PA.textContent = '–'; TA.textContent = '–';
   TBTN.classList.remove('active'); SBTN.classList.remove('active'); VBTN.classList.remove('active');
   BBTN.classList.remove('active'); BBTN.textContent = '✏️ Brush: Off';
   BC.classList.remove('active'); DC.classList.remove('brush-active');
