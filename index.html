@@ -1180,7 +1180,7 @@ footer a:hover{
 </div>
 
 <div class="ana-sec" id="anaSec" style="display:none">
-<div class="cal-hdr"><h3>🔬 Analysis Settings</h3><span class="status-badge status-cal" id="anaStatus" style="display:none">Analyzed</span></div>
+<div class="cal-hdr"><h3>🔬 Analyse Settings</h3><span class="status-badge status-cal" id="anaStatus" style="display:none">Analysed</span></div>
 <div class="slider-ctr">
 <div class="slider-lbl"><span>🎚️ Sensitivity</span><span id="sensVal">Moderate</span></div>
 <input type="range" id="sensSlider" min="0" max="100" value="50" oninput="updateSens()">
@@ -1189,7 +1189,7 @@ footer a:hover{
 <div class="tool-sel">
 <button class="tool-btn" id="targetBtn" onclick="toggleTarget()">🎯 Target Area</button>
 <button class="tool-btn" id="windowBtn" onclick="toggleWindow()">🪟 Window</button>
-<button class="tool-btn" id="squareBtn" onclick="toggleSquare()">📐 1m² Square</button>
+<button class="tool-btn" id="squareBtn" onclick="toggleSquare()">📐 1 m² Square</button>
 <button class="tool-btn" id="volumeBtn" onclick="toggleVolume()">📦 Volume</button>
 <button class="tool-btn" id="brushBtn" onclick="cycleBrush()">✏️ Brush: Off</button>
 </div>
@@ -1225,7 +1225,7 @@ footer a:hover{
 </div>
 <div class="vol-sec" id="volSec">
 <h4 style="margin-bottom:10px">Cubic Volume</h4>
-<p style="font-size:.8rem;color:var(--ts);margin-bottom:10px">Enter plant heights (m) at each corner and center of the 1m² square:</p>
+<p style="font-size:.8rem;color:var(--ts);margin-bottom:10px">Enter plant heights (m) at each corner and centre of the 1 m² square:</p>
 <div class="btn-grp">
 <input type="number" id="hNW" class="cal-inp" placeholder="NW" step="0.01" min="0" oninput="volChanged()">
 <input type="number" id="hNE" class="cal-inp" placeholder="NE" step="0.01" min="0" oninput="volChanged()">
@@ -1288,24 +1288,24 @@ footer a:hover{
 <p><strong>Detection uses a multi-method voting ensemble with 10 indices from peer-reviewed vegetation remote sensing research.</strong> A pixel is classified as plant when it receives sufficient votes (1 Aggressive / 2 Moderate / 3 Conservative) AND green dominates red and blue channels.</p>
 
 <h4>RGB Vegetation Indices</h4>
-<p><strong>ExG:</strong> (2G−R−B)/255 (Woebbecke 1995) — primary greenness amplification. <strong>ExG_norm:</strong> 2G−R−B (non-normalized).</p>
-<p><strong>CIVE:</strong> (G−R)/(G+R+B) (Kataoka 2003) — crop/background discrimination, brightness-invariant.</p>
-<p><strong>GRNDVI:</strong> (G−R)/(G+R) — RGB-adapted NDVI for green-red contrast (Gitelson).</p>
-<p><strong>VARI:</strong> (G−R)/(G+R−B) (Gitelson 2002) — atmospherically resistant for stable outdoor detection.</p>
-<p><strong>ExGR:</strong> (2G−R−B)−(1.4R−G) (Mexson 2010) — ExG with red suppression for soil/flower separation.</p>
-<p><strong>Enhanced ExG:</strong> ExG×(G/(R+B+1)) — ExG weighted by green proportion.</p>
+<p><strong>ExG:</strong> <code>(2 × G − R − B) / 255</code> (Woebbecke 1995) — primary greenness amplification. <strong>ExG_norm:</strong> <code>2 × G − R − B</code> (non-normalised).</p>
+<p><strong>CIVE:</strong> <code>(G − R) / (G + R + B)</code> (Kataoka 2003) — crop/background discrimination, brightness-invariant.</p>
+<p><strong>GRNDVI:</strong> <code>(G − R) / (G + R)</code> — RGB-adapted NDVI for green-red contrast (Gitelson).</p>
+<p><strong>VARI:</strong> <code>(G − R) / (G + R − B)</code> (Gitelson 2002) — atmospherically resistant for stable outdoor detection.</p>
+<p><strong>ExGR:</strong> <code>(2 × G − R − B) − (1.4 × R − G)</code> (Mexson 2010) — ExG with red suppression for soil/flower separation.</p>
+<p><strong>Enhanced ExG:</strong> <code>ExG × (G / (R + B + 1))</code> — ExG weighted by green proportion.</p>
 
 <h4>HSV Colour Space</h4>
-<p>Hue 30°–190° (green to yellow-green), Saturation >0.05 (catches dark greens), Value >0.05.</p>
+<p><code>Hue 30°–190°</code> (green to yellow-green), <code>Saturation > 0.05</code> (catches dark greens), <code>Value > 0.05</code>.</p>
 
 <h4>Additional Methods</h4>
-<p><strong>Bright Green:</strong> G>80 & R<0.9G & B<0.9G. <strong>Yellow-Green:</strong> Hue 30°–80° & G>70 & G>R & G>B.</p>
+<p><strong>Bright Green:</strong> <code>G > 80 ∧ R < 0.9 × G ∧ B < 0.9 × G</code>. <strong>Yellow-Green:</strong> <code>Hue 30°–80° ∧ G > 70 ∧ G > R ∧ G > B</code>.</p>
 
 <h4>Voting & Thresholds</h4>
-<p>Adaptive thresholds: base = 0.03–0.22 (sensitivity-dependent) × brightness factor. All indices use lenient thresholds for dark/yellow-green detection.</p>
+<p>Adaptive thresholds: <code>base = 0.03–0.22 (sensitivity-dependent) × brightness_factor</code>. All indices use lenient thresholds for dark/yellow-green detection.</p>
 
 <h3>Tools</h3>
-<p><strong>Target Area:</strong> Draw green rectangle to define analysis region. <strong>Window:</strong> Draw red rectangle to exclude area from analysis (subtracted from Target). <strong>1m² Square:</strong> Pre-calibrated reference for quick measurements.</p>
+<p><strong>Target Area:</strong> Draw green rectangle to define analysis region. <strong>Window:</strong> Draw red rectangle to exclude area from analysis (subtracted from Target). <strong>1 m² Square:</strong> Pre-calibrated reference for quick measurements.</p>
 <p><strong>Sensitivity:</strong> Aggressive (1 vote) = max recall | Moderate (2 votes) = balanced | Conservative (3 votes) = max precision.</p>
 <p><strong>Calibration:</strong> Draw line of known distance → enter length → enables real-world area (m²/cm²). Manual: Add/Erase brush for correction.</p>
 
@@ -1863,7 +1863,7 @@ function toggleWindow() {
 }
 
 function toggleSquare() {
-  if (!S.cal.mpp) { showError('Calibrate scale first to use 1m² Square.'); return; }
+  if (!S.cal.mpp) { showError('Calibrate scale first to use 1 m² Square.'); return; }
   S.square.on = !S.square.on;
   if (S.square.on) {
     const sz = Math.round(1 / S.cal.mpp);
@@ -2300,7 +2300,7 @@ function analyze() {
   showLoading();
   setTimeout(() => {
     try { performAnalysis(); hideLoading(); }
-    catch(err) { hideLoading(); showError('Analysis error: ' + err.message); }
+    catch(err) { hideLoading(); showError('Analyse error: ' + err.message); }
   }, 60);
 }
 
@@ -2441,7 +2441,7 @@ function performAnalysis() {
   TOB.disabled = false; SAVB.disabled = false;
   RS.style.display = 'block';
   renderOverlay();
-  showSuccess('Analysis complete!');
+  showSuccess('Analyse complete!');
 }
 
 // ─── Save / history ───────────────────────────────────────────────────────────
