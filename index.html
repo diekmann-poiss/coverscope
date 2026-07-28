@@ -814,6 +814,22 @@ input[type="range"]::-moz-range-thumb{
 .history-stat-value{font-size: 1rem; font-weight: 600; color: var(--primary);}
 .history-stat-lbl{font-size: 0.75rem; color: var(--text-muted);}
 
+.history-card-actions{display: flex; gap: 8px;}
+.history-delete-btn{
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  font-size: 0.85rem;
+  transition: var(--transition);
+}
+.history-delete-btn:hover{
+  background: var(--bg-hover);
+  color: var(--error);
+}
+
 .empty-state{
   text-align: center;
   padding: 60px 20px;
@@ -1244,6 +1260,7 @@ footer a:hover{
 
 <div id="history-tab" class="tab-content">
 <div class="card">
+<p style="color:var(--ts);margin-bottom:20px">View, rename, or delete saved measurements. Select measurements to compare in the Compare tab.</p>
 <div class="history-list" id="historyList"></div>
 <div class="btn-grp" style="margin-top:20px">
 <input type="text" id="pdfName" class="cal-inp" placeholder="PDF Report Name" style="flex: 1; min-width: 150px;" onkeypress="if(event.key==='Enter') exportAllPDF()">
@@ -2528,6 +2545,9 @@ function renderHistory() {
           <input type="checkbox" id="s-${M.id}" onchange="toggleSelection(${M.id})" ${sel?'checked':''}>
           <span class="history-card-title" contenteditable onblur="renameMeasure(${M.id},this.textContent)">${M.name}</span>
         </label>
+        <div class="history-card-actions">
+          <button class="history-delete-btn" onclick="deleteMeasure(${M.id})" title="Delete">🗑️</button>
+        </div>
       </div>
       <div class="history-card-date">${D.toLocaleDateString()} ${D.toLocaleTimeString()}</div>
       <div class="history-stats">
@@ -2550,6 +2570,15 @@ function toggleSelection(id) {
 function renameMeasure(id, n) {
   const M = S.measures.find(m => m.id === id);
   if (M) { M.name = n.trim() || M.name; localStorage.setItem('cs_measures', JSON.stringify(S.measures)); }
+}
+
+function deleteMeasure(id) {
+  if (!confirm('Delete this measurement? This cannot be undone.')) return;
+  S.measures = S.measures.filter(m => m.id !== id);
+  S.sel = S.sel.filter(s => s !== id);
+  localStorage.setItem('cs_measures', JSON.stringify(S.measures));
+  renderHistory();
+  showSuccess('Measurement deleted.');
 }
 
 function clearSelection() {

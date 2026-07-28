@@ -21,6 +21,7 @@ Precise, deterministic plant coverage measurement that works entirely on your de
 - View all saved measurements
 - Editable names
 - Coverage %, area, health index
+- Delete measurements
 - Select for comparison
 
 ### Compare Tab
