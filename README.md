@@ -1,6 +1,5 @@
 # CoverScope - Plant Coverage Measurement
 
-Precise, deterministic plant coverage measurement that works entirely on your device.
 
 **📍 Repository:** https://github.com/diekmann-poiss/coverscope
 
